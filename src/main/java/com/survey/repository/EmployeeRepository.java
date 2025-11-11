@@ -1,6 +1,7 @@
 package com.survey.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -19,6 +20,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     List<Employee> findByDepartment_NameAndSubmitted(String departmentName, boolean submitted);
     
     
-    //new 
+    
     List<Employee> findByDepartmentId(Long departmentId);
+    
+    Optional<Employee> findByEmployeeId(String employeeId);
+
 }
