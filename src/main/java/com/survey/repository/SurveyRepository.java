@@ -5,5 +5,5 @@ import com.survey.entity.Survey;
 import java.util.List;
 
 public interface SurveyRepository extends JpaRepository<Survey, Long> {
-    List<Survey> findAllByOrderByPublishedAtDesc();
+    List<Survey> findByPublished(boolean published);
 }

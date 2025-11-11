@@ -1,16 +1,21 @@
 package com.survey.dto.request;
 
-import lombok.*;
+import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
 import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class QuestionRequestDTO {
-	private String text;
-	private String type;
-	private List<String> options;
-	private boolean required;
+
+    @NotBlank(message = "Question text is required")
+    private String text;
+
+    @NotBlank(message = "Question type is required")
+    private String type;
+
+    private List<@NotBlank(message = "Option cannot be blank") String> options;
+
+    private boolean required;
 }

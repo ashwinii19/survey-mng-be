@@ -1,17 +1,23 @@
 package com.survey.dto.request;
 
-import lombok.*;
+import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class AssignmentRequestDTO {
-	private Long surveyId;
-	private List<Long> departmentIds; 
-	private List<Long> employeeIds;
-	private LocalDateTime dueDate;
+
+    @NotNull(message = "Survey ID is required")
+    private Long surveyId;
+
+    @Size(min = 1, message = "At least one department or employee must be assigned")
+    private List<Long> departmentIds;
+
+    private List<Long> employeeIds;
+
+    @FutureOrPresent(message = "Due date must be in the future or present")
+    private LocalDateTime dueDate;
 }

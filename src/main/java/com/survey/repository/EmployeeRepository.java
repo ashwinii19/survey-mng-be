@@ -17,4 +17,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 	List<Employee> findByDepartment_Name(String departmentName);
 
     List<Employee> findByDepartment_NameAndSubmitted(String departmentName, boolean submitted);
+    
+    
+    //new 
+    List<Employee> findByDepartmentId(Long departmentId);
 }
