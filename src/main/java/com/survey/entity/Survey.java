@@ -25,6 +25,8 @@ public class Survey {
 	private LocalDateTime createdAt;
 	private LocalDateTime publishedAt;
 
+	private String formLink;
+	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "target_department_id", nullable = true)
 	private Department targetDepartment;

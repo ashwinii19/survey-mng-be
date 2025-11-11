@@ -52,11 +52,7 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // admin protected endpoints
-                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/surveys/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/reminders/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/employees/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/dashboard/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/survey/**").permitAll()
 
                 // everything else requires authentication
                 .anyRequest().authenticated()
