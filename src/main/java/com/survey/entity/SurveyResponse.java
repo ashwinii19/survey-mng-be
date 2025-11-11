@@ -28,6 +28,4 @@ public class SurveyResponse {
 
 	private LocalDateTime submittedAt;
 
-	@OneToMany(mappedBy = "surveyResponse", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<QuestionResponse> answers;
 }

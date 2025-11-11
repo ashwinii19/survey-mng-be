@@ -1,17 +1,21 @@
 package com.survey.dto.response;
 
+import java.util.List;
+
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
 public class SurveySubmissionResponseDTO {
-    private Long id;
-    private Long surveyId;
-    private Long employeeId;
-    private String employeeName;
-    private LocalDateTime submittedAt;
-    private List<QuestionAnswerResponseDTO> answers;
+	private Long surveyId;
+	private String surveyTitle;
+	private String departmentName;
+
+	private long totalEmployees;
+	private long submittedCount;
+	private long pendingCount;
+
+	private List<String> submittedEmployees;
+	private List<String> pendingEmployees;
 }

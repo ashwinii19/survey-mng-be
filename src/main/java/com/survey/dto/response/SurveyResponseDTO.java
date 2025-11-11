@@ -8,12 +8,12 @@ import java.util.List;
 @Getter
 @Setter
 public class SurveyResponseDTO {
-    private Long id;
-    private String title;
-    private String description;
-    private boolean published;
-    private LocalDateTime createdAt;
-    private LocalDateTime publishedAt;
-    private DepartmentResponseDTO targetDepartment;
-    private List<QuestionResponseDTO> questions;
+	private Long id;
+	private String title;
+	private String description;
+	private boolean published;
+	private LocalDateTime createdAt;
+	private LocalDateTime publishedAt;
+	private DepartmentResponseDTO targetDepartment;
+	private List<QuestionResponseDTO> questions;
 }

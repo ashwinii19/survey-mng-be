@@ -1,13 +1,16 @@
 package com.survey.dto.request;
 
-import lombok.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class QuestionResponseRequestDTO {
+
+    @NotNull(message = "Question ID is required")
     private Long questionId;
+
+    @NotNull(message = "Answer cannot be null")
     private String answerText;
 }
