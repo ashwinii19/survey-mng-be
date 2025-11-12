@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ReminderRepository extends JpaRepository<Reminder, Long> {
-	List<Reminder> findBySurveyId(Long surveyId);
 
-	List<Reminder> findByActiveTrue();
+	List<Reminder> findByActiveTrueAndNextScheduledAtLessThanEqual(LocalDateTime now);
 
-	List<Reminder> findBySentFalseAndScheduledAtBefore(LocalDateTime time);
+	List<Reminder> findBySurvey_Title(String surveyTitle);
+
 }

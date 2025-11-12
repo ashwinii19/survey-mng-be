@@ -1,27 +1,24 @@
 package com.survey.dto.request;
 
-import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 public class ReminderRequestDTO {
 
-    @NotNull(message = "Survey ID is required")
-    private Long surveyId;
+    @NotBlank(message = "Survey name is required")
+    private String surveyName; 
 
-    private Long departmentId;
+    private String departmentName; 
 
-    @NotBlank(message = "Reminder message is required")
-    private String message;
-
-    @Future(message = "Scheduled time must be in the future")
+    @NotNull(message = "Scheduled date/time is required")
     private LocalDateTime scheduledAt;
 
-    @Min(value = 1, message = "Interval must be at least 1 day")
-    private Integer intervalInDays;
+    private Integer intervalInDays; 
 
-    private boolean active;
+    private String message; 
 }
