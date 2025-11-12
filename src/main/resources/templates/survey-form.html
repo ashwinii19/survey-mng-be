@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${survey.title}">Survey Form</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f2f4f7;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        button {
+            margin-top: 25px;
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005fa3;
+        }
+    </style>
+</head>
+<body>
+    <h2 th:text="${survey.title}">Survey Title</h2>
+    <p th:text="${survey.description}"></p>
+
+    <form th:action="@{'/survey/' + ${survey.id} + '/submit'}" method="post">
+        <input type="hidden" name="employeeId" th:value="${employeeId}" />
+
+        <div th:each="q : ${survey.questions}">
+            <label th:text="${q.text}">Question</label>
+
+            <!-- Render input depending on type -->
+            <div th:switch="${q.type}">
+                <input th:case="'text'" type="text" th:name="${'q_' + q.id}" placeholder="Your answer..." required />
+                <textarea th:case="'textarea'" th:name="${'q_' + q.id}" rows="3" placeholder="Your answer..." required></textarea>
+                <div th:case="'radio'">
+                    <div th:each="opt : ${q.options}">
+                        <label>
+                            <input type="radio" th:name="${'q_' + q.id}" th:value="${opt}" required> <span th:text="${opt}"></span>
+                        </label><br>
+                    </div>
+                </div>
+                <div th:case="'checkbox'">
+                    <div th:each="opt : ${q.options}">
+                        <label>
+                            <input type="checkbox" th:name="${'q_' + q.id}" th:value="${opt}"> <span th:text="${opt}"></span>
+                        </label><br>
+                    </div>
+                </div>
+                <input th:case="*" type="text" th:name="${'q_' + q.id}" placeholder="Your answer..." required />
+            </div>
+        </div>
+
+        <button type="submit">Submit Survey</button>
+    </form>
+</body>
+</html>

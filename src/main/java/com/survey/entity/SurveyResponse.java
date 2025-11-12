@@ -26,6 +26,12 @@ public class SurveyResponse {
 	@JoinColumn(name = "employee_id", nullable = false)
 	private Employee employee;
 
+//	@Column(columnDefinition = "TEXT")
+//	private String answersJson;
+
 	private LocalDateTime submittedAt;
+	
+	@OneToMany(mappedBy = "surveyResponse", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuestionResponse> questionResponses;
 
 }
