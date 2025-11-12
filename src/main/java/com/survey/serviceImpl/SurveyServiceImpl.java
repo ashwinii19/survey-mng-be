@@ -137,9 +137,9 @@ public class SurveyServiceImpl implements SurveyService {
                             "survey-mail-template",
                             context
                     );
-                    System.out.println("✅ Email sent successfully to " + emp.getEmail());
+                    System.out.println("Email sent successfully to " + emp.getEmail());
                 } catch (Exception e) {
-                    System.err.println("❌ Failed to send email to " + emp.getEmail() + ": " + e.getMessage());
+                    System.err.println("Failed to send email to " + emp.getEmail() + ": " + e.getMessage());
                 }
             }
         } else {

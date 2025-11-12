@@ -8,81 +8,78 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Controller
 @RequiredArgsConstructor
-@RequestMapping("/survey")
 public class SurveyFormController {
 
     private final SurveyRepository surveyRepository;
     private final EmployeeRepository employeeRepository;
-    private final SurveyResponseRepository responseRepository;
-    private final QuestionRepository questionRepository;
+    private final SurveyResponseRepository surveyResponseRepository;
     private final QuestionResponseRepository questionResponseRepository;
 
-    // ✅ Show the survey form with all questions
-    @GetMapping("/{id}/form")
-    public String showSurveyForm(@PathVariable Long id,
+    // 🟢 Step 1: Display survey form
+    @GetMapping("/survey/{surveyId}/form")
+    public String showSurveyForm(@PathVariable Long surveyId,
                                  @RequestParam(required = false) Long employeeId,
                                  Model model) {
 
-        Survey survey = surveyRepository.findById(id)
+        Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
+
+        Employee employee = null;
+        if (employeeId != null) {
+            employee = employeeRepository.findById(employeeId)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+        }
 
         model.addAttribute("survey", survey);
-        model.addAttribute("employeeId", employeeId);
+        model.addAttribute("employee", employee);
 
-        return "survey-form"; // Thymeleaf template
+        return "survey-form"; // Thymeleaf template name
     }
 
-    // ✅ Handle survey form submission
-    @PostMapping("/{id}/submit")
-    public String handleSurveySubmission(@PathVariable Long id,
-                                         @RequestParam Long employeeId,
-                                         @RequestParam Map<String, String> answers,
-                                         Model model) {
+    // 🟢 Step 2: Handle form submission
+    @PostMapping("/survey/{surveyId}/submit")
+    public String submitSurvey(@PathVariable Long surveyId,
+                               @RequestParam Long employeeId,
+                               @RequestParam Map<String, String> formData,
+                               Model model) {
 
-        Survey survey = surveyRepository.findById(id)
+        Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        Employee emp = employeeRepository.findById(employeeId)
+        Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Remove hidden fields
-        answers.remove("employeeId");
-
-        // ✅ Create a SurveyResponse (main record)
-        SurveyResponse surveyResponse = SurveyResponse.builder()
+        // Create a SurveyResponse
+        SurveyResponse response = SurveyResponse.builder()
                 .survey(survey)
-                .employee(emp)
+                .employee(employee)
                 .submittedAt(LocalDateTime.now())
                 .build();
-        SurveyResponse savedResponse = responseRepository.save(surveyResponse);
 
-        // ✅ Save each question's response
-        for (Map.Entry<String, String> entry : answers.entrySet()) {
-            String key = entry.getKey(); // like q_5
-            String answerText = entry.getValue();
+        surveyResponseRepository.save(response);
 
-            if (key.startsWith("q_")) {
-                Long questionId = Long.parseLong(key.substring(2)); // extract question ID
-                Optional<Question> questionOpt = questionRepository.findById(questionId);
-                if (questionOpt.isPresent()) {
-                    Question question = questionOpt.get();
-                    QuestionResponse qr = QuestionResponse.builder()
-                            .surveyResponse(savedResponse)
-                            .question(question)
-                            .answerText(answerText)
-                            .build();
-                    questionResponseRepository.save(qr);
-                }
+        // Save answers for each question
+        for (Question question : survey.getQuestions()) {
+            String key = "q_" + question.getId();
+            String answer = formData.get(key);
+
+            if (answer != null && !answer.isBlank()) {
+                QuestionResponse qr = QuestionResponse.builder()
+                        .surveyResponse(response)
+                        .question(question)
+                        .answerText(answer)
+                        .build();
+                questionResponseRepository.save(qr);
             }
         }
 
-        model.addAttribute("message", " Your responses have been submitted successfully!");
-        return "survey-success";
+        model.addAttribute("survey", survey);
+        model.addAttribute("employee", employee);
+
+        return "survey-success"; // Confirmation page
     }
 }
