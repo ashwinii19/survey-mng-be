@@ -88,7 +88,7 @@ public class ReminderServiceImpl implements ReminderService {
         Reminder reminder = reminderRepository.findById(reminderId)
                 .orElseThrow(() -> new RuntimeException("Reminder not found"));
 
-        ReminderSendResultDTO result = processReminder(reminder, true);
+        ReminderSendResultDTO result = processReminder(reminder, false);
 
         reminder.setSent(true);
         reminder.setSentAt(LocalDateTime.now());
@@ -104,6 +104,7 @@ public class ReminderServiceImpl implements ReminderService {
         reminderRepository.save(reminder);
         return result;
     }
+
 
     @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Kolkata")
     public void scheduledReminderRunner() {
