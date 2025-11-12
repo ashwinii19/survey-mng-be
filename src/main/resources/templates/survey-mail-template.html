@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New Survey Assigned</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .email-container {
+            background-color: #ffffff;
+            max-width: 600px;
+            margin: 40px auto;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #0078d4;
+        }
+
+        .header h2 {
+            color: #0078d4;
+            margin: 0;
+        }
+
+        .content {
+            padding: 20px 0;
+        }
+
+        .content p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #0078d4;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #005fa3;
+        }
+
+        .footer {
+            margin-top: 25px;
+            font-size: 13px;
+            color: #777;
+            text-align: center;
+        }
+
+        .due-date {
+            background: #e7f3ff;
+            color: #005fa3;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+
+    <div class="header">
+        <h2>📋 New Survey Assigned</h2>
+    </div>
+
+    <div class="content">
+        <p>Hi <b th:text="${employeeName}">Employee</b>,</p>
+
+        <p>
+            You have been assigned a new survey titled 
+            <b th:text="${surveyTitle}">Survey Title</b>.
+        </p>
+
+        <p>
+            Please complete the survey before 
+            <span class="due-date" th:text="${dueDate}">Due Date</span>.
+        </p>
+
+        <p>Click the button below to open your survey form:</p>
+
+        <p style="text-align: center;">
+            <a th:href="${formLink}" target="_blank" class="button">Fill Survey</a>
+        </p>
+
+        <p>
+            Your feedback helps us improve and create a better work environment.
+            Please take a few minutes to share your honest thoughts.
+        </p>
+
+        <p>Thank you for your time and valuable input!</p>
+    </div>
+
+    <div class="footer">
+        <p>— The Survey Administration Team</p>
+        <p style="font-size:12px;">This is an automated message. Please do not reply.</p>
+    </div>
+
+</div>
+</body>
+</html>
