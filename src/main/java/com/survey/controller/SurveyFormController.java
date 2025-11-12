@@ -19,7 +19,6 @@ public class SurveyFormController {
     private final SurveyResponseRepository surveyResponseRepository;
     private final QuestionResponseRepository questionResponseRepository;
 
-    // 🟢 Step 1: Display survey form
     @GetMapping("/survey/{surveyId}/form")
     public String showSurveyForm(@PathVariable Long surveyId,
                                  @RequestParam(required = false) Long employeeId,
@@ -37,10 +36,9 @@ public class SurveyFormController {
         model.addAttribute("survey", survey);
         model.addAttribute("employee", employee);
 
-        return "survey-form"; // Thymeleaf template name
+        return "survey-form"; 
     }
 
-    // 🟢 Step 2: Handle form submission
     @PostMapping("/survey/{surveyId}/submit")
     public String submitSurvey(@PathVariable Long surveyId,
                                @RequestParam Long employeeId,
@@ -53,7 +51,6 @@ public class SurveyFormController {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Create a SurveyResponse
         SurveyResponse response = SurveyResponse.builder()
                 .survey(survey)
                 .employee(employee)
@@ -62,7 +59,6 @@ public class SurveyFormController {
 
         surveyResponseRepository.save(response);
 
-        // Save answers for each question
         for (Question question : survey.getQuestions()) {
             String key = "q_" + question.getId();
             String answer = formData.get(key);
@@ -80,6 +76,6 @@ public class SurveyFormController {
         model.addAttribute("survey", survey);
         model.addAttribute("employee", employee);
 
-        return "survey-success"; // Confirmation page
+        return "survey-success"; 
     }
 }

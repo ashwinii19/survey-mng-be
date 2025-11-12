@@ -7,13 +7,13 @@ import com.survey.repository.*;
 import com.survey.service.SurveyService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +28,9 @@ public class SurveyServiceImpl implements SurveyService {
     private final QuestionRepository questionRepository;
     private final EmailService emailService;
     private final ModelMapper mapper;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     @Override
     public SurveyResponseDTO createSurvey(SurveyRequestDTO dto) {
@@ -45,7 +48,7 @@ public class SurveyServiceImpl implements SurveyService {
 
         Survey savedSurvey = surveyRepository.save(survey);
 
-        String generatedLink = "http://localhost:8080/survey/" + savedSurvey.getId() + "/form";
+        String generatedLink = baseUrl + "/survey/" + savedSurvey.getId() + "/form";
         savedSurvey.setFormLink(generatedLink);
         surveyRepository.save(savedSurvey);
 
@@ -88,23 +91,14 @@ public class SurveyServiceImpl implements SurveyService {
             throw new RuntimeException("Survey is already published");
         }
 
-        // Mark as published
         survey.setPublished(true);
         survey.setPublishedAt(LocalDateTime.now());
         Survey savedSurvey = surveyRepository.save(survey);
 
         Department dept = survey.getTargetDepartment();
-        List<Employee> employees;
-
-        if (dept != null) {
-            System.out.println("Target Department ID: " + dept.getId());
-            employees = employeeRepository.findByDepartmentId(dept.getId());
-        } else {
-            System.out.println("Global survey: assigning to all employees");
-            employees = employeeRepository.findAll();
-        }
-
-        System.out.println("Employees found: " + employees.size());
+        List<Employee> employees = (dept != null)
+                ? employeeRepository.findByDepartmentId(dept.getId())
+                : employeeRepository.findAll();
 
         if (!employees.isEmpty()) {
             List<SurveyAssignment> assignments = employees.stream()
@@ -119,7 +113,6 @@ public class SurveyServiceImpl implements SurveyService {
                     .collect(Collectors.toList());
 
             assignmentRepository.saveAll(assignments);
-            System.out.println("Assignments saved: " + assignments.size());
 
             for (Employee emp : employees) {
                 Context context = new Context();
@@ -127,7 +120,7 @@ public class SurveyServiceImpl implements SurveyService {
                 context.setVariable("surveyTitle", survey.getTitle());
                 context.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
 
-                String personalizedLink = "http://localhost:8080/survey/" + survey.getId() + "/form?employeeId=" + emp.getId();
+                String personalizedLink = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getId();
                 context.setVariable("formLink", personalizedLink);
 
                 try {
