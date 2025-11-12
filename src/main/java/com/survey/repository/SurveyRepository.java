@@ -1,9 +1,14 @@
 package com.survey.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.survey.entity.Survey;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
 import java.util.List;
 
 public interface SurveyRepository extends JpaRepository<Survey, Long> {
-    List<Survey> findByPublished(boolean published);
+
+    Optional<Survey> findByTitle(String title);
+
+    List<Survey> findAllByTitle(String title);
 }
