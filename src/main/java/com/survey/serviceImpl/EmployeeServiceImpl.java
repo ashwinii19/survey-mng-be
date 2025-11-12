@@ -19,127 +19,129 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EmployeeServiceImpl implements EmployeeService {
 
-    private final EmployeeRepository employeeRepository;
-    private final DepartmentRepository departmentRepository;
+	private final EmployeeRepository employeeRepository;
+	private final DepartmentRepository departmentRepository;
 
-   
-    private EmployeeResponseDTO mapToResponse(Employee employee) {
-        EmployeeResponseDTO dto = new EmployeeResponseDTO();
-        dto.setId(employee.getId());
-        dto.setEmployeeId(employee.getEmployeeId());
-        dto.setName(employee.getName());
-        dto.setEmail(employee.getEmail());
-        dto.setPosition(employee.getPosition());
-        dto.setStatus(employee.getStatus());
-        dto.setJoinDate(employee.getJoinDate());
-        dto.setSubmitted(employee.isSubmitted());
+	private EmployeeResponseDTO mapToResponse(Employee employee) {
+		EmployeeResponseDTO dto = new EmployeeResponseDTO();
+		dto.setId(employee.getId());
+		dto.setEmployeeId(employee.getEmployeeId());
+		dto.setName(employee.getName());
+		dto.setEmail(employee.getEmail());
+		dto.setPosition(employee.getPosition());
+		dto.setStatus(employee.getStatus());
+		dto.setJoinDate(employee.getJoinDate());
+		dto.setSubmitted(employee.isSubmitted());
 
-        if (employee.getDepartment() != null) {
-            DepartmentResponseDTO deptDto = new DepartmentResponseDTO();
-            deptDto.setId(employee.getDepartment().getId());
-            deptDto.setName(employee.getDepartment().getName());
-            dto.setDepartment(deptDto);
-        }
-        return dto;
-    }
+		if (employee.getDepartment() != null) {
+			DepartmentResponseDTO deptDto = new DepartmentResponseDTO();
+			deptDto.setId(employee.getDepartment().getId());
+			deptDto.setName(employee.getDepartment().getName());
+			dto.setDepartment(deptDto);
+		}
+		return dto;
+	}
 
-   
-    @Override
-    public EmployeeResponseDTO createEmployee(EmployeeRequestDTO dto) {
-        Employee emp = new Employee();
-        emp.setEmployeeId(dto.getEmployeeId());
-        emp.setName(dto.getName());
-        emp.setEmail(dto.getEmail());
-        emp.setPosition(dto.getPosition());
-        emp.setStatus(dto.getStatus());
-        emp.setJoinDate(dto.getJoinDate());
-        emp.setSubmitted(false);
+	@Override
+	public EmployeeResponseDTO createEmployee(EmployeeRequestDTO dto) {
+		Employee emp = new Employee();
+		emp.setEmployeeId(dto.getEmployeeId());
+		emp.setName(dto.getName());
+		emp.setEmail(dto.getEmail());
+		emp.setPosition(dto.getPosition());
+		emp.setStatus(dto.getStatus());
+		emp.setJoinDate(dto.getJoinDate());
+		emp.setSubmitted(false);
 
-        Department department = departmentRepository.findById(dto.getDepartmentId())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
-        emp.setDepartment(department);
+		Department department = departmentRepository.findById(dto.getDepartmentId())
+				.orElseThrow(() -> new RuntimeException("Department not found"));
+		emp.setDepartment(department);
 
-        Employee savedEmployee = employeeRepository.save(emp);
-        return mapToResponse(savedEmployee);
-    }
+		Employee savedEmployee = employeeRepository.save(emp);
+		return mapToResponse(savedEmployee);
+	}
 
-   
-    @Override
-    public EmployeeResponseDTO getEmployeeById(Long id) {
-        Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-        return mapToResponse(emp);
-    }
+	@Override
+	public List<EmployeeResponseDTO> getAllEmployees() {
+		return employeeRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+	}
 
-    
-    @Override
-    public List<EmployeeResponseDTO> getAllEmployees() {
-        return employeeRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+	@Override
+	public EmployeeResponseDTO updateEmployee(Long id, EmployeeRequestDTO dto) {
+		Employee emp = employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
 
-    
-    @Override
-    public EmployeeResponseDTO updateEmployee(Long id, EmployeeRequestDTO dto) {
-        Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+		emp.setEmployeeId(dto.getEmployeeId());
+		emp.setName(dto.getName());
+		emp.setEmail(dto.getEmail());
+		emp.setPosition(dto.getPosition());
+		emp.setStatus(dto.getStatus());
+		emp.setJoinDate(dto.getJoinDate());
 
-        emp.setEmployeeId(dto.getEmployeeId());
-        emp.setName(dto.getName());
-        emp.setEmail(dto.getEmail());
-        emp.setPosition(dto.getPosition());
-        emp.setStatus(dto.getStatus());
-        emp.setJoinDate(dto.getJoinDate());
+		Department department = departmentRepository.findById(dto.getDepartmentId())
+				.orElseThrow(() -> new RuntimeException("Department not found"));
+		emp.setDepartment(department);
 
-        Department department = departmentRepository.findById(dto.getDepartmentId())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
-        emp.setDepartment(department);
+		Employee updatedEmployee = employeeRepository.save(emp);
+		return mapToResponse(updatedEmployee);
+	}
 
-        Employee updatedEmployee = employeeRepository.save(emp);
-        return mapToResponse(updatedEmployee);
-    }
+	@Override
+	public List<EmployeeResponseDTO> getEmployeesBySubmissionStatus(boolean submitted) {
+		return employeeRepository.findBySubmitted(submitted).stream().map(this::mapToResponse)
+				.collect(Collectors.toList());
+	}
 
-   
-    @Override
-    public void deleteEmployee(Long id) {
-        if (!employeeRepository.existsById(id)) {
-            throw new RuntimeException("Employee not found");
-        }
-        employeeRepository.deleteById(id);
-    }
+	@Override
+	public long countEmployeesBySubmissionStatus(boolean submitted) {
+		return employeeRepository.countBySubmitted(submitted);
+	}
 
-    
-    @Override
-    public List<EmployeeResponseDTO> getEmployeesBySubmissionStatus(boolean submitted) {
-        return employeeRepository.findBySubmitted(submitted)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+	@Override
+	public List<EmployeeResponseDTO> getEmployeesByDepartmentName(String departmentName) {
+		return employeeRepository.findByDepartment_Name(departmentName).stream().map(this::mapToResponse)
+				.collect(Collectors.toList());
+	}
 
-    
-    @Override
-    public long countEmployeesBySubmissionStatus(boolean submitted) {
-        return employeeRepository.countBySubmitted(submitted);
-    }
+	@Override
+	public List<EmployeeResponseDTO> getEmployeesByDepartmentAndSubmission(String departmentName, boolean submitted) {
+		return employeeRepository.findByDepartment_NameAndSubmitted(departmentName, submitted).stream()
+				.map(this::mapToResponse).collect(Collectors.toList());
+	}
 
-    
-    @Override
-    public List<EmployeeResponseDTO> getEmployeesByDepartmentName(String departmentName) {
-        return employeeRepository.findByDepartment_Name(departmentName)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+	@Override
+	public EmployeeResponseDTO getEmployeeById(String employeeId) {
+		Employee emp = employeeRepository.findByEmployeeId(employeeId)
+				.orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+		return mapToResponse(emp);
+	}
 
-   
-    @Override
-    public List<EmployeeResponseDTO> getEmployeesByDepartmentAndSubmission(String departmentName, boolean submitted) {
-        return employeeRepository.findByDepartment_NameAndSubmitted(departmentName, submitted)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+	// ✅ Update employee by employeeId
+	@Override
+	public EmployeeResponseDTO updateEmployee(String employeeId, EmployeeRequestDTO dto) {
+		Employee emp = employeeRepository.findByEmployeeId(employeeId)
+				.orElseThrow(() -> new RuntimeException("Employee not found"));
+
+		emp.setName(dto.getName());
+		emp.setEmail(dto.getEmail());
+		emp.setPosition(dto.getPosition());
+		emp.setStatus(dto.getStatus());
+		emp.setJoinDate(dto.getJoinDate());
+
+		Department department = departmentRepository.findById(dto.getDepartmentId())
+				.orElseThrow(() -> new RuntimeException("Department not found"));
+		emp.setDepartment(department);
+
+		Employee updatedEmployee = employeeRepository.save(emp);
+		return mapToResponse(updatedEmployee);
+	}
+
+	// ✅ Soft delete (set status = "Inactive")
+	@Override
+	public void deleteEmployee(String employeeId) {
+		Employee emp = employeeRepository.findByEmployeeId(employeeId)
+				.orElseThrow(() -> new RuntimeException("Employee not found"));
+		emp.setStatus("Inactive");
+		employeeRepository.save(emp);
+	}
+
 }

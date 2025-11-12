@@ -29,23 +29,27 @@ public class EmployeeController {
     }
 
 
-    @GetMapping("/{id}")
-    public EmployeeResponseDTO getEmployeeById(@PathVariable Long id) {
-        return employeeService.getEmployeeById(id);
+   
+
+
+    @GetMapping("/{employeeId}")
+    public EmployeeResponseDTO getEmployeeById(@PathVariable String employeeId) {
+        return employeeService.getEmployeeById(employeeId);
     }
 
     
-    @PutMapping("/{id}")
-    public EmployeeResponseDTO updateEmployee(@PathVariable Long id, @RequestBody EmployeeRequestDTO dto) {
-        return employeeService.updateEmployee(id, dto);
+    @PutMapping("/{employeeId}")
+    public EmployeeResponseDTO updateEmployee(@PathVariable String employeeId, @RequestBody EmployeeRequestDTO dto) {
+        return employeeService.updateEmployee(employeeId, dto);
     }
 
    
-    @DeleteMapping("/{id}")
-    public void deleteEmployee(@PathVariable Long id) {
-        employeeService.deleteEmployee(id);
+    @DeleteMapping("/{employeeId}")
+    public void deleteEmployee(@PathVariable String employeeId) {
+        employeeService.deleteEmployee(employeeId);
     }
 
+    
     
     @GetMapping("/submitted/{status}")
     public List<EmployeeResponseDTO> getEmployeesBySubmissionStatus(@PathVariable boolean status) {
