@@ -33,47 +33,41 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
-            // --- basic setup ---
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
             .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
-
-            // --- endpoint authorization rules ---
             .authorizeHttpRequests(auth -> auth
-                // public endpoints
+                // ✅ Publicly accessible endpoints (NO JWT needed)
                 .requestMatchers(
-                    "/api/auth/login",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html"
+                        "/survey/**",             // <-- survey form & submission
+                        "/api/auth/login",        // login
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/", "/index.html",
+                        "/css/**", "/js/**", "/images/**",
+                        "/survey_success.html"
                 ).permitAll()
 
-                // admin protected endpoints
-                .requestMatchers("/survey/**").permitAll()
+                // ✅ Admin APIs require authentication
+                .requestMatchers("/api/admin/**").authenticated()
 
-                // everything else requires authentication
+                // ✅ Everything else requires authentication
                 .anyRequest().authenticated()
             );
 
-        // --- attach JWT filter ---
+        // Attach JWT filter before username/password
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // --- CORS configuration for Angular frontend ---
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:4200",
-            "https://localhost:4200"
-        ));
-
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200", "https://localhost:4200"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
@@ -84,7 +78,6 @@ public class SecurityConfig {
         return source;
     }
 
-    // --- Beans for auth and password encoding ---
     @Bean
     public static PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

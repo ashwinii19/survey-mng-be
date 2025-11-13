@@ -1,23 +1,7 @@
 package com.survey.entity;
 
-import java.util.List;
-
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "questions")
@@ -27,22 +11,23 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class Question {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
 
-	private String text;
-	private String type;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ElementCollection
-	@CollectionTable(name = "question_options", joinColumns = @JoinColumn(name = "question_id"))
-	@Column(name = "option_value")
-	private List<String> options;
-	
-	private boolean required;
+    private String text;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "survey_id")
-	private Survey survey;
+    @Column(name = "question_type")
+    private String questionType;  // TEXT, RADIO, CHECKBOX, DROPDOWN
 
+    @Column(columnDefinition = "TEXT")
+    private String options; // Comma-separated values for choices
+
+    @Column(nullable = false)
+    private boolean required = false;  // ✅ NEW FIELD
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "survey_id")
+    private Survey survey;
 }
