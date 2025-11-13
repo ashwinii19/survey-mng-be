@@ -16,18 +16,22 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // QUESTION TEXT
+    @Column(nullable = false)
     private String text;
 
-    @Column(name = "question_type")
-    private String questionType;  // TEXT, RADIO, CHECKBOX, DROPDOWN
+    // TEXT, TEXTAREA, RADIO, CHECKBOX, DROPDOWN
+    @Column(name = "question_type", nullable = false)
+    private String questionType;
 
+    // Comma-separated options
     @Column(columnDefinition = "TEXT")
-    private String options; // Comma-separated values for choices
+    private String options;
 
-    @Column(nullable = false)
-    private boolean required = false;  // ✅ NEW FIELD
+    private boolean required;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_id")
     private Survey survey;
+
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/survey")
@@ -22,7 +23,6 @@ public class SurveyFormController {
     private final QuestionRepository questionRepository;
     private final QuestionResponseRepository questionResponseRepository;
 
-    // ✅ Show the survey form
     @GetMapping("/{surveyId}/form")
     public String showSurveyForm(@PathVariable Long surveyId,
                                  @RequestParam String employeeId,
@@ -36,40 +36,54 @@ public class SurveyFormController {
 
         model.addAttribute("survey", survey);
         model.addAttribute("employee", employee);
-
-        return "survey_form"; // ✅ corresponds to templates/survey_form.html
+        return "survey_form";
     }
 
     @PostMapping("/{surveyId}/submit")
     public String submitSurvey(@PathVariable Long surveyId,
                                @RequestParam String employeeId,
-                               @RequestParam Map<String, String> formData) {
+                               @RequestParam Map<String, String> formData,
+                               Model model) {
 
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
+
         Employee employee = employeeRepository.findByEmployeeId(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Save main survey response
-        SurveyResponse surveyResponse = new SurveyResponse();
-        surveyResponse.setSurvey(survey);
-        surveyResponse.setEmployeeId(employeeId);
-        surveyResponse.setSubmittedAt(LocalDateTime.now());
-        surveyResponseRepository.save(surveyResponse);
+        // Save main response
+        SurveyResponse response = new SurveyResponse();
+        response.setSurvey(survey);
+        response.setEmployeeId(employeeId);
+        response.setSubmittedAt(LocalDateTime.now());
+        surveyResponseRepository.save(response);
 
-        // Save each question’s response
+        // Save questions
         List<Question> questions = questionRepository.findBySurveyId(surveyId);
+
         for (Question q : questions) {
+
             String key = "q_" + q.getId();
             String answer = formData.get(key);
 
+            // CHECKBOX MULTIPLE VALUES
+            if (q.getQuestionType().equalsIgnoreCase("CHECKBOX")) {
+                List<String> selected = formData.entrySet().stream()
+                        .filter(e -> e.getKey().startsWith(key))
+                        .map(Map.Entry::getValue)
+                        .toList();
+                answer = String.join(", ", selected);
+            }
+
             if (answer != null && !answer.isBlank()) {
                 QuestionResponse qr = new QuestionResponse();
-                qr.setSurveyResponse(surveyResponse);
+                qr.setSurveyResponse(response);
                 qr.setQuestion(q);
-                qr.setAnswerText(answer);
                 qr.setEmployeeId(employeeId);
+                qr.setAnswerText(answer.trim());
                 questionResponseRepository.save(qr);
+
+                System.out.println("Saved: " + q.getText() + " -> " + answer);
             }
         }
 
