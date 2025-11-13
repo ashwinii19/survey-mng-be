@@ -106,7 +106,7 @@ public class ReminderServiceImpl implements ReminderService {
         Reminder reminder = reminderRepository.findById(reminderId)
                 .orElseThrow(() -> new RuntimeException("Reminder not found"));
 
-        ReminderSendResultDTO result = processReminder(reminder, true);
+        ReminderSendResultDTO result = processReminder(reminder, false);
 
         reminder.setSent(true);
         reminder.setSentAt(LocalDateTime.now());
@@ -146,12 +146,12 @@ public class ReminderServiceImpl implements ReminderService {
 
                 reminderRepository.save(reminder);
             } catch (Exception e) {
-                // swallow so other reminders still run
             }
         }
     }
 
     private ReminderSendResultDTO processReminder(Reminder reminder, boolean sendToAll) {
+
         Survey survey = reminder.getSurvey();
         Department department = reminder.getDepartment();
 
@@ -166,11 +166,12 @@ public class ReminderServiceImpl implements ReminderService {
                 .collect(Collectors.toSet());
 
         List<Employee> recipients = employees.stream()
-                .filter(emp -> sendToAll || !submittedEmployeeIds.contains(emp.getEmployeeId()))
+                .filter(emp -> !submittedEmployeeIds.contains(emp.getEmployeeId()))
                 .collect(Collectors.toList());
 
         List<String> sentTo = new ArrayList<>();
         List<String> failed = new ArrayList<>();
+
         for (Employee emp : recipients) {
             try {
                 Context context = new Context();
@@ -179,21 +180,29 @@ public class ReminderServiceImpl implements ReminderService {
                 String link = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getEmployeeId();
                 context.setVariable("formLink", link);
                 context.setVariable("message", reminder.getMessage());
-                context.setVariable("dueDate", reminder.getScheduledAt() != null ? reminder.getScheduledAt().toLocalDate().toString() : "");
+                context.setVariable("dueDate", reminder.getScheduledAt() != null
+                        ? reminder.getScheduledAt().toLocalDate().toString()
+                        : "");
 
-                emailService.sendEmailWithTemplate(emp.getEmail(),
+                emailService.sendEmailWithTemplate(
+                        emp.getEmail(),
                         "Survey Reminder: " + survey.getTitle(),
-                        "survey-mail-template", context);
+                        "survey-mail-template",
+                        context
+                );
+
                 sentTo.add(emp.getEmail());
 
-                SurveyAssignment assignment = assignmentRepository.findBySurveyIdAndEmployeeId(
-                        survey.getId(), emp.getEmployeeId()).orElse(null);
+                SurveyAssignment assignment =
+                        assignmentRepository.findBySurveyIdAndEmployeeId(
+                                survey.getId(), emp.getEmployeeId()).orElse(null);
+
                 if (assignment != null) {
                     assignment.setReminderSent(true);
                     assignmentRepository.save(assignment);
                 }
 
-            } catch (MailException e) {
+            } catch (Exception e) {
                 failed.add(emp.getEmail());
             }
         }
@@ -203,12 +212,15 @@ public class ReminderServiceImpl implements ReminderService {
         result.setSurveyTitle(survey.getTitle());
         result.setDepartmentName(department != null ? department.getName() : "All Departments");
         result.setTotalEmployees(employees.size());
-        result.setPendingCount((int) employees.stream().filter(emp -> !submittedEmployeeIds.contains(emp.getEmployeeId())).count());
+
+        result.setPendingCount(recipients.size());
+
         result.setSentTo(sentTo);
         result.setFailed(failed);
         result.setTimestamp(LocalDateTime.now());
         return result;
     }
+
 
     @Override
     public Map<String, List<String>> getSubmissionStatus(Long reminderId) {
