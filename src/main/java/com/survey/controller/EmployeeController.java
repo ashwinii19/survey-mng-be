@@ -50,17 +50,7 @@ public class EmployeeController {
     }
 
     
-    
-    @GetMapping("/submitted/{status}")
-    public List<EmployeeResponseDTO> getEmployeesBySubmissionStatus(@PathVariable boolean status) {
-        return employeeService.getEmployeesBySubmissionStatus(status);
-    }
 
-   
-    @GetMapping("/count/{status}")
-    public long countEmployeesBySubmissionStatus(@PathVariable boolean status) {
-        return employeeService.countEmployeesBySubmissionStatus(status);
-    }
 
     @GetMapping("/department/{name}")
     public List<EmployeeResponseDTO> getEmployeesByDepartmentName(@PathVariable String name) {
@@ -68,10 +58,5 @@ public class EmployeeController {
     }
 
    
-    @GetMapping("/department/{name}/submitted/{status}")
-    public List<EmployeeResponseDTO> getEmployeesByDepartmentAndSubmission(
-            @PathVariable String name,
-            @PathVariable boolean status) {
-        return employeeService.getEmployeesByDepartmentAndSubmission(name, status);
-    }
+
 }

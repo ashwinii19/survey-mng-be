@@ -16,10 +16,9 @@ public interface EmployeeService {
     
 
     
-    List<EmployeeResponseDTO> getEmployeesBySubmissionStatus(boolean submitted);
-    long countEmployeesBySubmissionStatus(boolean submitted);
+   
     List<EmployeeResponseDTO> getEmployeesByDepartmentName(String departmentName);
-    List<EmployeeResponseDTO> getEmployeesByDepartmentAndSubmission(String departmentName, boolean submitted);
+    
 	EmployeeResponseDTO getEmployeeById(String employeeId);
 	EmployeeResponseDTO updateEmployee(String employeeId, EmployeeRequestDTO dto);
 

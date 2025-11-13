@@ -41,7 +41,7 @@ public class Employee {
     @Column(nullable = false, unique = true)
     private String email;
 
-    private boolean submitted;
+    //private boolean submitted;
     private String position;
     private String status;
     private String joinDate;
