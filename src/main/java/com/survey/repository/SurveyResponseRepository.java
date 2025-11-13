@@ -12,5 +12,21 @@ public interface SurveyResponseRepository extends JpaRepository<SurveyResponse, 
 
     List<SurveyResponse> findBySurveyId(Long surveyId);
 
-    List<SurveyResponse> findBySurveyIdAndSubmittedAtBetween(Long surveyId, LocalDateTime start, LocalDateTime end);
+    List<SurveyResponse> findBySurveyIdAndSubmittedAtBetween(
+            Long surveyId,
+            LocalDateTime start,
+            LocalDateTime end
+    );
+
+    long countBy();
+
+    List<SurveyResponse> findDistinctByEmployeeId(String employeeId);
+
+    List<SurveyResponse> findBySurveyIdAndEmployeeIdIn(Long surveyId, List<String> employeeIds);
+
+    List<SurveyResponse> findByEmployeeIdIn(List<String> employeeIds);
+
+    long countBySurveyId(Long surveyId);
+
+    long countByEmployeeId(String employeeId);
 }

@@ -11,18 +11,15 @@ import com.survey.entity.Employee;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
-//	List<Employee> findBySubmitted(boolean submitted);
-
-//	long countBySubmitted(boolean submitted);
-
 	List<Employee> findByDepartment_Name(String departmentName);
 
-//    List<Employee> findByDepartment_NameAndSubmitted(String departmentName, boolean submitted);
-    
-    
-    
-    List<Employee> findByDepartmentId(Long departmentId);
     
     Optional<Employee> findByEmployeeId(String employeeId);
+    
+    int countByDepartmentId(Long departmentId);
+
+    List<Employee> findByDepartmentId(Long departmentId);
+
+//    Employee findByEmployeeId(String employeeId);
 
 }
