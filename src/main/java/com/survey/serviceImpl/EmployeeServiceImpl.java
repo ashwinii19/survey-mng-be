@@ -1,3 +1,4 @@
+
 package com.survey.serviceImpl;
 
 import com.survey.dto.request.EmployeeRequestDTO;
@@ -31,7 +32,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 		dto.setPosition(employee.getPosition());
 		dto.setStatus(employee.getStatus());
 		dto.setJoinDate(employee.getJoinDate());
-		dto.setSubmitted(employee.isSubmitted());
 
 		if (employee.getDepartment() != null) {
 			DepartmentResponseDTO deptDto = new DepartmentResponseDTO();
@@ -51,7 +51,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 		emp.setPosition(dto.getPosition());
 		emp.setStatus(dto.getStatus());
 		emp.setJoinDate(dto.getJoinDate());
-		emp.setSubmitted(false);
 
 		Department department = departmentRepository.findById(dto.getDepartmentId())
 				.orElseThrow(() -> new RuntimeException("Department not found"));
@@ -86,26 +85,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 	}
 
 	@Override
-	public List<EmployeeResponseDTO> getEmployeesBySubmissionStatus(boolean submitted) {
-		return employeeRepository.findBySubmitted(submitted).stream().map(this::mapToResponse)
-				.collect(Collectors.toList());
-	}
-
-	@Override
-	public long countEmployeesBySubmissionStatus(boolean submitted) {
-		return employeeRepository.countBySubmitted(submitted);
-	}
-
-	@Override
 	public List<EmployeeResponseDTO> getEmployeesByDepartmentName(String departmentName) {
 		return employeeRepository.findByDepartment_Name(departmentName).stream().map(this::mapToResponse)
 				.collect(Collectors.toList());
-	}
-
-	@Override
-	public List<EmployeeResponseDTO> getEmployeesByDepartmentAndSubmission(String departmentName, boolean submitted) {
-		return employeeRepository.findByDepartment_NameAndSubmitted(departmentName, submitted).stream()
-				.map(this::mapToResponse).collect(Collectors.toList());
 	}
 
 	@Override
@@ -115,7 +97,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 		return mapToResponse(emp);
 	}
 
-	// ✅ Update employee by employeeId
 	@Override
 	public EmployeeResponseDTO updateEmployee(String employeeId, EmployeeRequestDTO dto) {
 		Employee emp = employeeRepository.findByEmployeeId(employeeId)
@@ -135,7 +116,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 		return mapToResponse(updatedEmployee);
 	}
 
-	// ✅ Soft delete (set status = "Inactive")
 	@Override
 	public void deleteEmployee(String employeeId) {
 		Employee emp = employeeRepository.findByEmployeeId(employeeId)
@@ -143,5 +123,4 @@ public class EmployeeServiceImpl implements EmployeeService {
 		emp.setStatus("Inactive");
 		employeeRepository.save(emp);
 	}
-
 }

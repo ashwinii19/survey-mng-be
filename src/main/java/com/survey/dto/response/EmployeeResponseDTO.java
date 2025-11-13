@@ -14,5 +14,5 @@ public class EmployeeResponseDTO {
     private String status;
     private String joinDate;
     private DepartmentResponseDTO department;
-    private boolean submitted; 
+    //private boolean submitted; 
 }
