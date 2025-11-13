@@ -55,12 +55,15 @@ public class SurveyServiceImpl implements SurveyService {
         if (dto.getQuestions() != null && !dto.getQuestions().isEmpty()) {
             List<Question> questions = dto.getQuestions().stream()
                     .map(qDto -> {
-                        Question q = mapper.map(qDto, Question.class);
+                        Question q = new Question();
+                        q.setText(qDto.getText());
+                        q.setQuestionType(qDto.getType().toUpperCase()); // "TEXT", "RADIO", etc.
+                        q.setOptions(String.join(",", qDto.getOptions()));
+                        q.setRequired(qDto.isRequired()); // ✅ set required field
                         q.setSurvey(savedSurvey);
                         return q;
                     }).collect(Collectors.toList());
             questionRepository.saveAll(questions);
-            savedSurvey.setQuestions(questions);
         }
 
         return mapper.map(savedSurvey, SurveyResponseDTO.class);
@@ -81,6 +84,67 @@ public class SurveyServiceImpl implements SurveyService {
         return mapper.map(s, SurveyResponseDTO.class);
     }
 
+//    @Override
+//    @Transactional
+//    public SurveyResponseDTO publishSurvey(Long id) {
+//        Survey survey = surveyRepository.findById(id)
+//                .orElseThrow(() -> new RuntimeException("Survey not found"));
+//
+//        if (survey.isPublished()) {
+//            throw new RuntimeException("Survey is already published");
+//        }
+//
+//        survey.setPublished(true);
+//        survey.setPublishedAt(LocalDateTime.now());
+//        Survey savedSurvey = surveyRepository.save(survey);
+//
+//        Department dept = survey.getTargetDepartment();
+//        List<Employee> employees = (dept != null)
+//                ? employeeRepository.findByDepartmentId(dept.getId())
+//                : employeeRepository.findAll();
+//
+//        if (!employees.isEmpty()) {
+//            List<SurveyAssignment> assignments = employees.stream()
+//                    .map(emp -> SurveyAssignment.builder()
+//                            .survey(savedSurvey)
+//                            .department(dept != null ? dept : emp.getDepartment())
+//                            .employee(emp)
+//                            .assignedAt(LocalDateTime.now())
+//                            .dueDate(LocalDateTime.now().plusDays(7))
+//                            .reminderSent(false)
+//                            .build())
+//                    .collect(Collectors.toList());
+//
+//            assignmentRepository.saveAll(assignments);
+//
+//            for (Employee emp : employees) {
+//                Context context = new Context();
+//                context.setVariable("employeeName", emp.getName());
+//                context.setVariable("surveyTitle", survey.getTitle());
+//                context.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
+//
+//                String personalizedLink = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getId();
+//                context.setVariable("formLink", personalizedLink);
+//
+//                try {
+//                    emailService.sendEmailWithTemplate(
+//                            emp.getEmail(),
+//                            "New Survey Assigned: " + survey.getTitle(),
+//                            "survey-mail-template",
+//                            context
+//                    );
+//                    System.out.println("Email sent successfully to " + emp.getEmail());
+//                } catch (Exception e) {
+//                    System.err.println("Failed to send email to " + emp.getEmail() + ": " + e.getMessage());
+//                }
+//            }
+//        } else {
+//            System.out.println("No employees found to assign!");
+//        }
+//
+//        return mapper.map(savedSurvey, SurveyResponseDTO.class);
+//    }
+    
     @Override
     @Transactional
     public SurveyResponseDTO publishSurvey(Long id) {
@@ -101,16 +165,17 @@ public class SurveyServiceImpl implements SurveyService {
                 : employeeRepository.findAll();
 
         if (!employees.isEmpty()) {
-            List<SurveyAssignment> assignments = employees.stream()
-                    .map(emp -> SurveyAssignment.builder()
-                            .survey(savedSurvey)
-                            .department(dept != null ? dept : emp.getDepartment())
-                            .employee(emp)
-                            .assignedAt(LocalDateTime.now())
-                            .dueDate(LocalDateTime.now().plusDays(7))
-                            .reminderSent(false)
-                            .build())
-                    .collect(Collectors.toList());
+        	List<SurveyAssignment> assignments = employees.stream()
+        	        .map(emp -> SurveyAssignment.builder()
+        	                .survey(savedSurvey)
+        	                .department(dept != null ? dept : emp.getDepartment())
+        	                .employeeId(emp.getEmployeeId()) 
+        	                .assignedAt(LocalDateTime.now())
+        	                .dueDate(LocalDateTime.now().plusDays(7))
+        	                .reminderSent(false)
+        	                .build())
+        	        .collect(Collectors.toList());
+
 
             assignmentRepository.saveAll(assignments);
 
@@ -120,7 +185,8 @@ public class SurveyServiceImpl implements SurveyService {
                 context.setVariable("surveyTitle", survey.getTitle());
                 context.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
 
-                String personalizedLink = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getId();
+                // ✅ FIXED: Use business employeeId (E101) instead of numeric DB id
+                String personalizedLink = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getEmployeeId();
                 context.setVariable("formLink", personalizedLink);
 
                 try {
@@ -141,6 +207,7 @@ public class SurveyServiceImpl implements SurveyService {
 
         return mapper.map(savedSurvey, SurveyResponseDTO.class);
     }
+
 
     @Override
     public void deleteSurvey(Long id) {

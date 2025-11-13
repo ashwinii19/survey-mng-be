@@ -8,74 +8,72 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 @Controller
+@RequestMapping("/survey")
 @RequiredArgsConstructor
 public class SurveyFormController {
 
     private final SurveyRepository surveyRepository;
     private final EmployeeRepository employeeRepository;
     private final SurveyResponseRepository surveyResponseRepository;
+    private final QuestionRepository questionRepository;
     private final QuestionResponseRepository questionResponseRepository;
 
-    @GetMapping("/survey/{surveyId}/form")
+    // ✅ Show the survey form
+    @GetMapping("/{surveyId}/form")
     public String showSurveyForm(@PathVariable Long surveyId,
-                                 @RequestParam(required = false) Long employeeId,
+                                 @RequestParam String employeeId,
                                  Model model) {
 
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        Employee employee = null;
-        if (employeeId != null) {
-            employee = employeeRepository.findById(employeeId)
-                    .orElseThrow(() -> new RuntimeException("Employee not found"));
-        }
+        Employee employee = employeeRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
         model.addAttribute("survey", survey);
         model.addAttribute("employee", employee);
 
-        return "survey-form"; 
+        return "survey_form"; // ✅ corresponds to templates/survey_form.html
     }
 
-    @PostMapping("/survey/{surveyId}/submit")
+    @PostMapping("/{surveyId}/submit")
     public String submitSurvey(@PathVariable Long surveyId,
-                               @RequestParam Long employeeId,
-                               @RequestParam Map<String, String> formData,
-                               Model model) {
+                               @RequestParam String employeeId,
+                               @RequestParam Map<String, String> formData) {
 
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
-
-        Employee employee = employeeRepository.findById(employeeId)
+        Employee employee = employeeRepository.findByEmployeeId(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        SurveyResponse response = SurveyResponse.builder()
-                .survey(survey)
-                .employee(employee)
-                .submittedAt(LocalDateTime.now())
-                .build();
+        // Save main survey response
+        SurveyResponse surveyResponse = new SurveyResponse();
+        surveyResponse.setSurvey(survey);
+        surveyResponse.setEmployeeId(employeeId);
+        surveyResponse.setSubmittedAt(LocalDateTime.now());
+        surveyResponseRepository.save(surveyResponse);
 
-        surveyResponseRepository.save(response);
-
-        for (Question question : survey.getQuestions()) {
-            String key = "q_" + question.getId();
+        // Save each question’s response
+        List<Question> questions = questionRepository.findBySurveyId(surveyId);
+        for (Question q : questions) {
+            String key = "q_" + q.getId();
             String answer = formData.get(key);
 
             if (answer != null && !answer.isBlank()) {
-                QuestionResponse qr = QuestionResponse.builder()
-                        .surveyResponse(response)
-                        .question(question)
-                        .answerText(answer)
-                        .build();
+                QuestionResponse qr = new QuestionResponse();
+                qr.setSurveyResponse(surveyResponse);
+                qr.setQuestion(q);
+                qr.setAnswerText(answer);
+                qr.setEmployeeId(employeeId);
                 questionResponseRepository.save(qr);
             }
         }
 
-        model.addAttribute("survey", survey);
-        model.addAttribute("employee", employee);
-
-        return "survey-success"; 
+        return "survey_success";
     }
+
 }

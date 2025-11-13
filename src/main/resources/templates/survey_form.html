@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${survey.title}">Survey Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f8fa; padding: 40px; }
+    h2 { color: #004aad; text-align: center; }
+    form { background: white; max-width: 800px; margin: 30px auto; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    .question { margin-bottom: 25px; padding: 15px; border-bottom: 1px solid #eee; }
+    label { display: block; font-weight: bold; margin-bottom: 10px; color: #333; }
+    input[type="text"], textarea, select {
+      width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;
+    }
+    .option-group { margin-left: 20px; margin-top: 5px; }
+    .option-group label { font-weight: normal; display: inline-block; margin-right: 15px; }
+    button {
+      background: #004aad; color: white; padding: 10px 25px; border: none;
+      border-radius: 6px; cursor: pointer; font-size: 16px;
+    }
+    button:hover { background: #00348f; }
+  </style>
+</head>
+<body>
+
+  <h2 th:text="'Survey: ' + ${survey.title}"></h2>
+  <form th:action="@{'/survey/' + ${survey.id} + '/submit'}" method="post">
+    <input type="hidden" name="employeeId" th:value="${employee.employeeId}" />
+
+    <div th:each="q : ${survey.questions}" class="question">
+
+      <label th:text="${q.text}">Question Text</label>
+
+      <!-- TEXT / TEXTAREA -->
+      <div th:if="${q.questionType == 'TEXT'}">
+        <textarea th:name="'q_' + ${q.id}" rows="3" placeholder="Enter your answer here..."></textarea>
+      </div>
+
+      <!-- RADIO OPTIONS -->
+      <div th:if="${q.questionType == 'RADIO'}" class="option-group">
+        <div th:each="opt : ${#strings.arraySplit(q.options, ',')}">
+          <label>
+            <input type="radio" th:name="'q_' + ${q.id}" th:value="${opt.trim()}" />
+            <span th:text="${opt.trim()}"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- CHECKBOX OPTIONS -->
+      <div th:if="${q.questionType == 'CHECKBOX'}" class="option-group">
+        <div th:each="opt : ${#strings.arraySplit(q.options, ',')}">
+          <label>
+            <input type="checkbox" th:name="'q_' + ${q.id}" th:value="${opt.trim()}" />
+            <span th:text="${opt.trim()}"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- DROPDOWN -->
+      <div th:if="${q.questionType == 'DROPDOWN'}">
+        <select th:name="'q_' + ${q.id}">
+          <option value="">-- Select an option --</option>
+          <option th:each="opt : ${#strings.arraySplit(q.options, ',')}"
+                  th:value="${opt.trim()}"
+                  th:text="${opt.trim()}"></option>
+        </select>
+      </div>
+
+    </div>
+
+    <div style="text-align:center">
+      <button type="submit">Submit Survey</button>
+    </div>
+  </form>
+
+</body>
+</html>

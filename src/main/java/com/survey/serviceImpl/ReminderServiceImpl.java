@@ -1,12 +1,15 @@
 package com.survey.serviceImpl;
 
-import com.survey.dto.request.ReminderRequestDTO;
-import com.survey.dto.response.ReminderResponseDTO;
-import com.survey.dto.response.ReminderSendResultDTO;
-import com.survey.entity.*;
-import com.survey.repository.*;
-import com.survey.service.ReminderService;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
@@ -14,9 +17,23 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.survey.dto.request.ReminderRequestDTO;
+import com.survey.dto.response.ReminderResponseDTO;
+import com.survey.dto.response.ReminderSendResultDTO;
+import com.survey.entity.Department;
+import com.survey.entity.Employee;
+import com.survey.entity.Reminder;
+import com.survey.entity.Survey;
+import com.survey.entity.SurveyAssignment;
+import com.survey.repository.DepartmentRepository;
+import com.survey.repository.EmployeeRepository;
+import com.survey.repository.ReminderRepository;
+import com.survey.repository.SurveyAssignmentRepository;
+import com.survey.repository.SurveyRepository;
+import com.survey.repository.SurveyResponseRepository;
+import com.survey.service.ReminderService;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +44,7 @@ public class ReminderServiceImpl implements ReminderService {
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
     private final SurveyResponseRepository responseRepository;
+    private final SurveyAssignmentRepository assignmentRepository;
     private final EmailService emailService;
     private final ModelMapper mapper;
 
@@ -42,7 +60,7 @@ public class ReminderServiceImpl implements ReminderService {
 
         Survey survey = surveys.stream()
                 .max(Comparator.comparing(Survey::getCreatedAt))
-                .orElseThrow(() -> new RuntimeException("No valid survey found with that name."));
+                .orElseThrow(() -> new RuntimeException("No valid survey found."));
 
         Department department = null;
         if (dto.getDepartmentName() != null && !dto.getDepartmentName().isEmpty()) {
@@ -88,15 +106,13 @@ public class ReminderServiceImpl implements ReminderService {
         Reminder reminder = reminderRepository.findById(reminderId)
                 .orElseThrow(() -> new RuntimeException("Reminder not found"));
 
-        ReminderSendResultDTO result = processReminder(reminder, false);
+        ReminderSendResultDTO result = processReminder(reminder, true);
 
         reminder.setSent(true);
         reminder.setSentAt(LocalDateTime.now());
 
         if (reminder.getIntervalInDays() != null && reminder.getIntervalInDays() > 0) {
-            LocalDateTime next = (reminder.getScheduledAt() != null)
-                    ? reminder.getScheduledAt().plusDays(reminder.getIntervalInDays())
-                    : LocalDateTime.now().plusDays(reminder.getIntervalInDays());
+            LocalDateTime next = reminder.getScheduledAt().plusDays(reminder.getIntervalInDays());
             reminder.setNextScheduledAt(next);
             reminder.setScheduledAt(next);
         }
@@ -104,7 +120,6 @@ public class ReminderServiceImpl implements ReminderService {
         reminderRepository.save(reminder);
         return result;
     }
-
 
     @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Kolkata")
     public void scheduledReminderRunner() {
@@ -114,15 +129,12 @@ public class ReminderServiceImpl implements ReminderService {
     @Override
     public void processDueReminders() {
         List<Reminder> dueReminders = reminderRepository.findAll().stream()
-                .filter(r -> r.isActive()
-                        && r.getScheduledAt() != null
-                        && !r.getScheduledAt().isAfter(LocalDateTime.now()))
+                .filter(r -> r.isActive() && r.getScheduledAt() != null && !r.getScheduledAt().isAfter(LocalDateTime.now()))
                 .collect(Collectors.toList());
 
         for (Reminder reminder : dueReminders) {
             try {
                 processReminder(reminder, false);
-
                 reminder.setSent(true);
                 reminder.setSentAt(LocalDateTime.now());
 
@@ -134,7 +146,7 @@ public class ReminderServiceImpl implements ReminderService {
 
                 reminderRepository.save(reminder);
             } catch (Exception e) {
-                System.err.println("Failed to send reminder " + reminder.getId() + ": " + e.getMessage());
+                // swallow so other reminders still run
             }
         }
     }
@@ -147,40 +159,40 @@ public class ReminderServiceImpl implements ReminderService {
                 ? employeeRepository.findByDepartmentId(department.getId())
                 : employeeRepository.findAll();
 
-        Set<Long> submittedIds = responseRepository.findBySurveyId(survey.getId())
+        Set<String> submittedEmployeeIds = responseRepository.findBySurveyId(survey.getId())
                 .stream()
-                .map(r -> r.getEmployee().getId())
+                .map(r -> r.getEmployeeId())
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        List<Employee> recipients;
-        if (sendToAll) {
-            recipients = new ArrayList<>(employees);
-        } else {
-            recipients = employees.stream()
-                    .filter(emp -> !submittedIds.contains(emp.getId()))
-                    .collect(Collectors.toList());
-        }
+        List<Employee> recipients = employees.stream()
+                .filter(emp -> sendToAll || !submittedEmployeeIds.contains(emp.getEmployeeId()))
+                .collect(Collectors.toList());
 
         List<String> sentTo = new ArrayList<>();
         List<String> failed = new ArrayList<>();
-
         for (Employee emp : recipients) {
             try {
                 Context context = new Context();
                 context.setVariable("employeeName", emp.getName());
                 context.setVariable("surveyTitle", survey.getTitle());
-                String link = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getId();
+                String link = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getEmployeeId();
                 context.setVariable("formLink", link);
                 context.setVariable("message", reminder.getMessage());
                 context.setVariable("dueDate", reminder.getScheduledAt() != null ? reminder.getScheduledAt().toLocalDate().toString() : "");
 
-                emailService.sendEmailWithTemplate(
-                        emp.getEmail(),
+                emailService.sendEmailWithTemplate(emp.getEmail(),
                         "Survey Reminder: " + survey.getTitle(),
-                        "survey-mail-template",
-                        context
-                );
+                        "survey-mail-template", context);
                 sentTo.add(emp.getEmail());
+
+                SurveyAssignment assignment = assignmentRepository.findBySurveyIdAndEmployeeId(
+                        survey.getId(), emp.getEmployeeId()).orElse(null);
+                if (assignment != null) {
+                    assignment.setReminderSent(true);
+                    assignmentRepository.save(assignment);
+                }
+
             } catch (MailException e) {
                 failed.add(emp.getEmail());
             }
@@ -191,7 +203,7 @@ public class ReminderServiceImpl implements ReminderService {
         result.setSurveyTitle(survey.getTitle());
         result.setDepartmentName(department != null ? department.getName() : "All Departments");
         result.setTotalEmployees(employees.size());
-        result.setPendingCount((int) employees.stream().filter(emp -> !submittedIds.contains(emp.getId())).count());
+        result.setPendingCount((int) employees.stream().filter(emp -> !submittedEmployeeIds.contains(emp.getEmployeeId())).count());
         result.setSentTo(sentTo);
         result.setFailed(failed);
         result.setTimestamp(LocalDateTime.now());
@@ -207,18 +219,17 @@ public class ReminderServiceImpl implements ReminderService {
 
         List<Employee> employees = (department != null)
                 ? employeeRepository.findByDepartmentId(department.getId())
-                : employeeRepository.findAll();
+                : employee_repository_find_all();
 
-        Set<Long> submittedIds = responseRepository.findBySurveyId(survey.getId())
-                .stream().map(r -> r.getEmployee().getId()).collect(Collectors.toSet());
+        Set<String> submittedEmployeeIds = response_repository_find_by_surveyId_collect_employeeIds(survey.getId());
 
         List<String> submitted = employees.stream()
-                .filter(emp -> submittedIds.contains(emp.getId()))
+                .filter(emp -> submittedEmployeeIds.contains(emp.getEmployeeId()))
                 .map(Employee::getName)
                 .collect(Collectors.toList());
 
         List<String> notSubmitted = employees.stream()
-                .filter(emp -> !submittedIds.contains(emp.getId()))
+                .filter(emp -> !submittedEmployeeIds.contains(emp.getEmployeeId()))
                 .map(Employee::getName)
                 .collect(Collectors.toList());
 
@@ -226,6 +237,18 @@ public class ReminderServiceImpl implements ReminderService {
         result.put("submitted", submitted);
         result.put("notSubmitted", notSubmitted);
         return result;
+    }
+
+    private List<Employee> employee_repository_find_all() {
+        return employeeRepository.findAll();
+    }
+
+    private Set<String> response_repository_find_by_surveyId_collect_employeeIds(Long surveyId) {
+        return responseRepository.findBySurveyId(surveyId)
+                .stream()
+                .map(r -> r.getEmployeeId())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     @Override
