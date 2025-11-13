@@ -30,3 +30,33 @@
 //    @OneToMany(mappedBy = "jobInstance", fetch = FetchType.LAZY)
 //    private Set<BatchJobExecution> jobExecutions = new HashSet<>();
 //}
+
+
+package com.survey.b.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "CUSTOM_BATCH_JOB_INSTANCE")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BatchJobInstance {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "JOB_INSTANCE_ID")
+    private Long jobInstanceId;
+
+    @Column(name = "JOB_NAME")
+    private String jobName;
+
+    @Column(name = "JOB_KEY", columnDefinition = "TEXT")
+    private String jobKey;
+
+    @Column(name = "VERSION")
+    private Long version;
+}
