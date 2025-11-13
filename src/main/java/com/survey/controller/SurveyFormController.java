@@ -8,74 +8,86 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
+@RequestMapping("/survey")
 @RequiredArgsConstructor
 public class SurveyFormController {
 
     private final SurveyRepository surveyRepository;
     private final EmployeeRepository employeeRepository;
     private final SurveyResponseRepository surveyResponseRepository;
+    private final QuestionRepository questionRepository;
     private final QuestionResponseRepository questionResponseRepository;
 
-    @GetMapping("/survey/{surveyId}/form")
+    @GetMapping("/{surveyId}/form")
     public String showSurveyForm(@PathVariable Long surveyId,
-                                 @RequestParam(required = false) Long employeeId,
+                                 @RequestParam String employeeId,
                                  Model model) {
 
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        Employee employee = null;
-        if (employeeId != null) {
-            employee = employeeRepository.findById(employeeId)
-                    .orElseThrow(() -> new RuntimeException("Employee not found"));
-        }
+        Employee employee = employeeRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
         model.addAttribute("survey", survey);
         model.addAttribute("employee", employee);
-
-        return "survey-form"; 
+        return "survey_form";
     }
 
-    @PostMapping("/survey/{surveyId}/submit")
+    @PostMapping("/{surveyId}/submit")
     public String submitSurvey(@PathVariable Long surveyId,
-                               @RequestParam Long employeeId,
+                               @RequestParam String employeeId,
                                @RequestParam Map<String, String> formData,
                                Model model) {
 
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        Employee employee = employeeRepository.findById(employeeId)
+        Employee employee = employeeRepository.findByEmployeeId(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        SurveyResponse response = SurveyResponse.builder()
-                .survey(survey)
-                .employee(employee)
-                .submittedAt(LocalDateTime.now())
-                .build();
-
+        // Save main response
+        SurveyResponse response = new SurveyResponse();
+        response.setSurvey(survey);
+        response.setEmployeeId(employeeId);
+        response.setSubmittedAt(LocalDateTime.now());
         surveyResponseRepository.save(response);
 
-        for (Question question : survey.getQuestions()) {
-            String key = "q_" + question.getId();
+        // Save questions
+        List<Question> questions = questionRepository.findBySurveyId(surveyId);
+
+        for (Question q : questions) {
+
+            String key = "q_" + q.getId();
             String answer = formData.get(key);
 
+            // CHECKBOX MULTIPLE VALUES
+            if (q.getQuestionType().equalsIgnoreCase("CHECKBOX")) {
+                List<String> selected = formData.entrySet().stream()
+                        .filter(e -> e.getKey().startsWith(key))
+                        .map(Map.Entry::getValue)
+                        .toList();
+                answer = String.join(", ", selected);
+            }
+
             if (answer != null && !answer.isBlank()) {
-                QuestionResponse qr = QuestionResponse.builder()
-                        .surveyResponse(response)
-                        .question(question)
-                        .answerText(answer)
-                        .build();
+                QuestionResponse qr = new QuestionResponse();
+                qr.setSurveyResponse(response);
+                qr.setQuestion(q);
+                qr.setEmployeeId(employeeId);
+                qr.setAnswerText(answer.trim());
                 questionResponseRepository.save(qr);
+
+                System.out.println("Saved: " + q.getText() + " -> " + answer);
             }
         }
 
-        model.addAttribute("survey", survey);
-        model.addAttribute("employee", employee);
-
-        return "survey-success"; 
+        return "survey_success";
     }
+
 }

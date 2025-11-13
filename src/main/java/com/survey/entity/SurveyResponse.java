@@ -14,24 +14,19 @@ import java.util.List;
 @Builder
 public class SurveyResponse {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "survey_id", nullable = false)
-	private Survey survey;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "survey_id", nullable = false)
+    private Survey survey;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "employee_id", nullable = false)
-	private Employee employee;
+    @Column(name = "employee_id", nullable = false)
+    private String employeeId;
 
-//	@Column(columnDefinition = "TEXT")
-//	private String answersJson;
+    private LocalDateTime submittedAt;
 
-	private LocalDateTime submittedAt;
-	
-	@OneToMany(mappedBy = "surveyResponse", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "surveyResponse", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionResponse> questionResponses;
-
 }
