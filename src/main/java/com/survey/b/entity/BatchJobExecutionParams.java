@@ -2,7 +2,6 @@ package com.survey.b.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,17 +12,16 @@ import java.time.LocalDateTime;
 public class BatchJobExecutionParams {
 
     @Id
-    @Column(name = "JOB_EXECUTION_ID")
-    private Long jobExecutionId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "PARAMETER_ID")
+    private Long parameterId;       // PRIMARY KEY (AUTO_INCREMENT)
 
-    // Remove the paramId field since it doesn't exist in your table
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
-    // @Column(name = "PARAM_ID")
-    // private Long paramId;
-
-    @ManyToOne
-    @JoinColumn(name = "JOB_EXECUTION_ID", nullable = false, insertable = false, updatable = false)
-    private BatchJobExecution jobExecution;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+        name = "JOB_EXECUTION_ID",
+        nullable = false
+    )
+    private BatchJobExecution jobExecution;   // Foreign Key to Job Execution
 
     @Column(name = "TYPE_CD", nullable = false)
     private String typeCd;

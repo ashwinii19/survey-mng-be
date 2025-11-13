@@ -1,52 +1,40 @@
 package com.survey.controller;
 
 import java.util.List;
-import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.survey.dto.dashboard.DashboardResponseDTO;
+import com.survey.repository.SurveyRepository;
 import com.survey.service.DashboardService;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
-@RequestMapping("/api/dashboard")
-@CrossOrigin(origins = "http://localhost:4200")
+@RequestMapping("/api/admin/dashboard")
+@RequiredArgsConstructor
 public class DashboardController {
 
-    @Autowired
-    private DashboardService dashboardService;
+    private final DashboardService dashboardService;
+    private final SurveyRepository surveyRepository;
 
-    @GetMapping("/summary")
-    public Map<String, Object> getSummary() {
-        return dashboardService.getSummary();
+    @GetMapping
+    public DashboardResponseDTO getDashboard(
+            @RequestParam(required = false) Long surveyId,
+            @RequestParam(required = false) Long departmentId
+    ) {
+        return dashboardService.getDashboardData(surveyId, departmentId);
     }
-
-    @GetMapping("/departments")
-    public List<Map<String, Object>> getDepartments() {
-        return dashboardService.getDepartments();
-    }
-
+    
     @GetMapping("/surveys")
-    public List<Map<String, Object>> getSurveys() {
-        return dashboardService.getSurveys();
+    public List<String> getSurveyNames() {
+        return surveyRepository.findAll()
+                .stream()
+                .map(s -> s.getTitle())
+                .toList();
     }
 
-    @GetMapping("/employees")
-    public List<Map<String, Object>> getEmployees(@RequestParam boolean submitted) {
-        return dashboardService.getEmployees(submitted);
-    }
-
-    @GetMapping("/responseBreakdown/department")
-    public List<Map<String, Object>> getResponseBreakdownByDepartment(@RequestParam(required = false) String department) {
-        return dashboardService.getResponseBreakdownByDepartment(department);
-    }
-
-    @GetMapping("/responseBreakdown/survey")
-    public List<Map<String, Object>> getResponseBreakdownBySurvey(@RequestParam(required = false) String survey) {
-        return dashboardService.getResponseBreakdownBySurvey(survey);
-    }
 }

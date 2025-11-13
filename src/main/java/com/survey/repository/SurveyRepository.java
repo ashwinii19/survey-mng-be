@@ -11,4 +11,9 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
     Optional<Survey> findByTitle(String title);
 
     List<Survey> findAllByTitle(String title);
+    
+    List<Survey> findTop5ByOrderByPublishedAtDesc();
+    
+    
+
 }

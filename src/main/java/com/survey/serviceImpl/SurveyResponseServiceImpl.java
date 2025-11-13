@@ -134,7 +134,7 @@ public class SurveyResponseServiceImpl implements SurveyResponseService {
         response.setQuestionResponses(answers);
         surveyResponseRepository.save(response);
 
-        employee.setSubmitted(true);
+//        employee.setSubmitted(true);
         employeeRepository.save(employee);
 
         // SurveyAssignment lookup now uses business employeeId - ensure repo method supports String
