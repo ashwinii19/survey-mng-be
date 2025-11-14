@@ -1,5 +1,7 @@
 package com.survey.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -19,6 +21,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import jakarta.persistence.Column;
 
+
+
 @Entity
 @Table(name = "employee")
 @Getter
@@ -27,7 +31,7 @@ import jakarta.persistence.Column;
 @AllArgsConstructor
 @Builder
 public class Employee {
-
+	
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -48,5 +52,6 @@ public class Employee {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
+    @JsonIgnore
     private Department department;
 }
