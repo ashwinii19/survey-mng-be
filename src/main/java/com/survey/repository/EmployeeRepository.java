@@ -13,33 +13,15 @@ import com.survey.entity.Employee;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
-    List<Employee> findByDepartment_Name(String departmentName);
-    
-    List<Employee> findByDepartmentId(Long departmentId);
+	List<Employee> findByDepartment_Name(String departmentName);
+
     
     Optional<Employee> findByEmployeeId(String employeeId);
     
-    // Check if email exists
-    @Query("SELECT COUNT(e) > 0 FROM Employee e WHERE e.email = :email")
-    boolean existsByEmail(@Param("email") String email);
-    
-    // Check if employee ID exists
-    @Query("SELECT COUNT(e) > 0 FROM Employee e WHERE e.employeeId = :employeeId")
-    boolean existsByEmployeeId(@Param("employeeId") String employeeId);
-    
-    // Find by email
-    Optional<Employee> findByEmail(String email);
-    
-    // Count employees by department
-    @Query("SELECT COUNT(e) FROM Employee e WHERE e.department.id = :departmentId")
-    long countByDepartmentId(@Param("departmentId") Long departmentId);
-    
-    // Find employees by status
-    List<Employee> findByStatus(String status);
-    
-    // Find employees by position
-    List<Employee> findByPosition(String position);
-    
-    // Find employees by department and status
-    List<Employee> findByDepartmentIdAndStatus(Long departmentId, String status);
+    int countByDepartmentId(Long departmentId);
+
+    List<Employee> findByDepartmentId(Long departmentId);
+
+//    Employee findByEmployeeId(String employeeId);
+
 }

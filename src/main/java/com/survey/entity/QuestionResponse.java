@@ -24,7 +24,9 @@ public class QuestionResponse {
     @JoinColumn(name = "question_id")
     private Question question;
 
-    @Column(length = 1000)
+    @Column(name = "employee_id", nullable = false)
+    private String employeeId;
+
+    @Column(name = "answer_text", columnDefinition = "TEXT")
     private String answerText;
 }
-
