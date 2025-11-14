@@ -5,7 +5,14 @@ import com.survey.dto.response.AdminResponseDTO;
 
 public interface AuthService {
 
-    AdminResponseDTO login(AdminLoginDTO loginDTO);
+	AdminResponseDTO login(AdminLoginDTO loginDTO);
 
-    void createDefaultAdmin();
+	void createDefaultAdmin();
+
+	void sendResetOtp(String email);
+
+	boolean verifyOtp(String email, String otp);
+
+	void resetPassword(String email, String newPassword);
+
 }

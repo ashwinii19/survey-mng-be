@@ -2,12 +2,12 @@ package com.survey.dto.dashboard;
 
 import lombok.Getter;
 import lombok.Setter;
+
 import java.util.List;
 
 @Getter
 @Setter
 public class DashboardResponseDTO {
-
     private long totalEmployees;
     private long totalSurveys;
     private long totalSubmitted;

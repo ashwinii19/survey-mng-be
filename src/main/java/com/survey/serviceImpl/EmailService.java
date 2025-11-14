@@ -8,6 +8,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
@@ -43,4 +44,18 @@ public class EmailService {
             throw new RuntimeException("Failed to send email to " + to, e);
         }
     }
+    
+    public void sendSimpleMail(String to, String subject, String text) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            message.setFrom(new InternetAddress(from));
+            message.setRecipients(MimeMessage.RecipientType.TO, to);
+            message.setSubject(subject);
+            message.setText(text);
+            mailSender.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException("Email sending failed");
+        }
+    }
+
 }
