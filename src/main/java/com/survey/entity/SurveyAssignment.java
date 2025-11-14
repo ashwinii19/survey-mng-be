@@ -20,10 +20,6 @@ public class SurveyAssignment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_id", nullable = false)
     private Survey survey;
-
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "employee_id", nullable = false)
-//    private Employee employee;
     
     @Column(name = "employee_id", nullable = false)
     private String employeeId;   

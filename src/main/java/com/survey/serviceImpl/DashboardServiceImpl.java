@@ -30,52 +30,30 @@ public class DashboardServiceImpl implements DashboardService {
         dto.setTotalEmployees(totalEmployees);
         dto.setTotalSurveys(surveyRepository.count());
 
-        // --------------------------------------------------
-        // DEFAULT (all surveys)
-        // --------------------------------------------------
+        // total submitted depends on survey filter
         long totalSubmitted = (surveyId == null)
                 ? responseRepository.count()
                 : responseRepository.countBySurveyId(surveyId);
 
         dto.setTotalSubmitted(totalSubmitted);
-        dto.setTotalPending(totalEmployees - totalSubmitted);
+        dto.setTotalPending(Math.max(0, totalEmployees - totalSubmitted));
 
-        // --------------------------------------------------
-        // WHO HAS SUBMITTED THIS SURVEY?
-        // --------------------------------------------------
-        Set<String> submittedEmployeeIds;
+        // build submitted ids set (survey or all)
+        Set<String> submittedEmployeeIds = (surveyId == null)
+                ? responseRepository.findAll().stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet())
+                : responseRepository.findBySurveyId(surveyId).stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet());
 
-        if (surveyId == null) {
-            submittedEmployeeIds = responseRepository.findAll()
-                    .stream()
-                    .map(SurveyResponse::getEmployeeId)
-                    .collect(Collectors.toSet());
+        // departments list (filtered or all)
+        List<Department> departments = (departmentId != null)
+                ? List.of(departmentRepository.findById(departmentId).orElseThrow(() -> new RuntimeException("Department not found")))
+                : departmentRepository.findAll();
 
-        } else {
-            submittedEmployeeIds = responseRepository.findBySurveyId(surveyId)
-                    .stream()
-                    .map(SurveyResponse::getEmployeeId)
-                    .collect(Collectors.toSet());
-        }
-
-        // --------------------------------------------------
-        // DEPARTMENT STATS (for department charts)
-        // --------------------------------------------------
-        List<Department> departments =
-                (departmentId != null)
-                        ? List.of(departmentRepository.findById(departmentId).orElseThrow())
-                        : departmentRepository.findAll();
-
-        List<DepartmentStatsDTO> deptStats =
-                departments.stream()
-                        .map(dept -> mapDepartmentStats(dept, submittedEmployeeIds))
-                        .collect(Collectors.toList());
-
+        List<DepartmentStatsDTO> deptStats = departments.stream()
+                .map(d -> mapDepartmentStats(d, submittedEmployeeIds))
+                .collect(Collectors.toList());
         dto.setDepartmentStats(deptStats);
 
-        // --------------------------------------------------
-        // SURVEY STATS (FOR SURVEY BAR & DONUT CHART)
-        // --------------------------------------------------
+        // survey stats (if survey filter)
         if (surveyId != null) {
             dto.setSurveyStats(buildSurveyStats(surveyId));
         }
@@ -83,8 +61,83 @@ public class DashboardServiceImpl implements DashboardService {
         return dto;
     }
 
-    private SurveyStatsDTO buildSurveyStats(Long surveyId) {
+    @Override
+    public List<Survey> listSurveys() {
+        return surveyRepository.findAll();
+    }
 
+    @Override
+    public List<Department> listDepartments() {
+        return departmentRepository.findAll();
+    }
+
+    @Override
+    public List<DepartmentStatsDTO> getDepartmentStats(Long surveyId, Long departmentId) {
+        Set<String> submittedEmployeeIds = (surveyId == null)
+                ? responseRepository.findAll().stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet())
+                : responseRepository.findBySurveyId(surveyId).stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet());
+
+        List<Department> departments = (departmentId != null)
+                ? List.of(departmentRepository.findById(departmentId).orElseThrow(() -> new RuntimeException("Department not found")))
+                : departmentRepository.findAll();
+
+        return departments.stream()
+                .map(d -> mapDepartmentStats(d, submittedEmployeeIds))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public SurveyStatsDTO getSurveyStats(Long surveyId) {
+        return buildSurveyStats(surveyId);
+    }
+
+    @Override
+    public List<String> listSubmittedEmployees(Long surveyId, Long departmentId) {
+        Set<String> submittedIds = (surveyId == null)
+                ? responseRepository.findAll().stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet())
+                : responseRepository.findBySurveyId(surveyId).stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet());
+
+        List<Employee> employees = (departmentId == null)
+                ? employeeRepository.findAll()
+                : employeeRepository.findByDepartmentId(departmentId);
+
+        return employees.stream()
+                .filter(e -> submittedIds.contains(e.getEmployeeId()))
+                .map(Employee::getName)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> listPendingEmployees(Long surveyId, Long departmentId) {
+        Set<String> submittedIds = (surveyId == null)
+                ? Collections.emptySet()
+                : responseRepository.findBySurveyId(surveyId).stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet());
+
+        List<Employee> employees = (departmentId == null)
+                ? employeeRepository.findAll()
+                : employeeRepository.findByDepartmentId(departmentId);
+
+        // If surveyId == null we treat "pending" relative to ALL submissions:
+        Set<String> allSubmitted = responseRepository.findAll().stream().map(SurveyResponse::getEmployeeId).collect(Collectors.toSet());
+
+        Set<String> excludeSet = (surveyId == null) ? allSubmitted : submittedIds;
+
+        return employees.stream()
+                .filter(e -> !excludeSet.contains(e.getEmployeeId()))
+                .map(Employee::getName)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Survey> recentSurveys(int limit) {
+        // Use repository method for top N by publishedAt if available
+        List<Survey> top = surveyRepository.findTop5ByOrderByPublishedAtDesc();
+        if (limit <= 0 || limit >= top.size()) return top;
+        return top.subList(0, limit);
+    }
+
+    // ---------- helper methods ----------
+    private SurveyStatsDTO buildSurveyStats(Long surveyId) {
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
@@ -97,7 +150,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         s.setTotalEmployees(totalEmployees);
         s.setTotalSubmitted(submitted);
-        s.setTotalPending(totalEmployees - submitted);
+        s.setTotalPending(Math.max(0, totalEmployees - submitted));
 
         return s;
     }
@@ -105,18 +158,17 @@ public class DashboardServiceImpl implements DashboardService {
     private DepartmentStatsDTO mapDepartmentStats(Department department, Set<String> submittedEmployeeIds) {
         DepartmentStatsDTO dto = new DepartmentStatsDTO();
 
-        List<Employee> employees = department.getEmployees();
+        List<Employee> employees = department.getEmployees() == null ? List.of() : department.getEmployees();
 
         dto.setDepartmentName(department.getName());
         dto.setTotalEmployees(employees.size());
 
-        long submitted =
-                employees.stream()
-                        .filter(e -> submittedEmployeeIds.contains(e.getEmployeeId()))
-                        .count();
+        long submitted = employees.stream()
+                .filter(e -> submittedEmployeeIds.contains(e.getEmployeeId()))
+                .count();
 
         dto.setSubmitted(submitted);
-        dto.setPending(dto.getTotalEmployees() - submitted);
+        dto.setPending(dto.getTotalEmployees() - dto.getSubmitted());
 
         return dto;
     }

@@ -18,7 +18,7 @@ public interface SurveyResponseRepository extends JpaRepository<SurveyResponse, 
             LocalDateTime end
     );
 
-    long countBy();
+//    long countBy();
 
     List<SurveyResponse> findDistinctByEmployeeId(String employeeId);
 
