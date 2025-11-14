@@ -1,5 +1,7 @@
 package com.survey.controller;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +17,40 @@ import com.survey.service.AuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+//
+//@RestController
+//@RequestMapping("/api/auth")
+//@RequiredArgsConstructor
+//public class AuthController {
+//
+//    private final AuthService authService;
+//
+//    @PostMapping("/login")
+//    public ResponseEntity<AdminResponseDTO> login(@Valid @RequestBody AdminLoginDTO dto) {
+//        return ResponseEntity.ok(authService.login(dto));
+//    }
+//    
+//    @PostMapping("/forgot-password")
+//    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequestDTO dto) {
+//        authService.sendResetOtp(dto.getEmail());
+//        return ResponseEntity.ok("OTP sent to email.");
+//    }
+//
+//    @PostMapping("/verify-otp")
+//    public ResponseEntity<String> verifyOtp(@RequestBody VerifyOtpDTO dto) {
+//        boolean valid = authService.verifyOtp(dto.getEmail(), dto.getOtp());
+//        return valid ? ResponseEntity.ok("OTP Verified") :
+//                ResponseEntity.badRequest().body("Invalid or expired OTP");
+//    }
+//
+//    @PostMapping("/reset-password")
+//    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordDTO dto) {
+//        authService.resetPassword(dto.getEmail(), dto.getNewPassword());
+//        return ResponseEntity.ok("Password updated successfully.");
+//    }
+//
+//}
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,24 +63,25 @@ public class AuthController {
     public ResponseEntity<AdminResponseDTO> login(@Valid @RequestBody AdminLoginDTO dto) {
         return ResponseEntity.ok(authService.login(dto));
     }
-    
+
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequestDTO dto) {
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody ForgotPasswordRequestDTO dto) {
         authService.sendResetOtp(dto.getEmail());
-        return ResponseEntity.ok("OTP sent to email.");
+        return ResponseEntity.ok(Map.of("message", "OTP sent to email"));
     }
+
 
     @PostMapping("/verify-otp")
     public ResponseEntity<String> verifyOtp(@RequestBody VerifyOtpDTO dto) {
         boolean valid = authService.verifyOtp(dto.getEmail(), dto.getOtp());
-        return valid ? ResponseEntity.ok("OTP Verified") :
+        return valid ? ResponseEntity.ok("OTP Verified!") :
                 ResponseEntity.badRequest().body("Invalid or expired OTP");
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordDTO dto) {
         authService.resetPassword(dto.getEmail(), dto.getNewPassword());
-        return ResponseEntity.ok("Password updated successfully.");
+        return ResponseEntity.ok("Password updated successfully!");
     }
-
 }
+
