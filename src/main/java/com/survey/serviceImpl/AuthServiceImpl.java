@@ -53,10 +53,58 @@ public class AuthServiceImpl implements AuthService {
             System.out.println("✅ Default admin created → admin@company.com / admin123");
         }
     }
-    
+//    
+//
+//    @Override
+//    public void sendResetOtp(String email) {
+//        Admin admin = adminRepository.findByEmail(email)
+//                .orElseThrow(() -> new RuntimeException("Email not found"));
+//
+//        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+//
+//        admin.setResetOtp(otp);
+//        admin.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+//        adminRepository.save(admin);
+//
+//       
+//        emailService.sendSimpleMail(
+//                email,
+//                "Your Password Reset OTP",
+//                "Your OTP for resetting password is: " + otp + "\nIt is valid for 10 minutes."
+//        );
+//    }
+//
+//    @Override
+//    public boolean verifyOtp(String email, String otp) {
+//        Admin admin = adminRepository.findByEmail(email)
+//                .orElseThrow(() -> new RuntimeException("Email not found"));
+//
+//        if (admin.getResetOtp() == null) return false;
+//        if (!admin.getResetOtp().equals(otp)) return false;
+//        if (admin.getOtpExpiry().isBefore(LocalDateTime.now())) return false;
+//
+//        return true;
+//    }
+//
+//    @Override
+//    public void resetPassword(String email, String newPassword) {
+//        Admin admin = adminRepository.findByEmail(email)
+//                .orElseThrow(() -> new RuntimeException("Email not found"));
+//
+//        admin.setPassword(passwordEncoder.encode(newPassword)); // FIXED ✔
+//        admin.setResetOtp(null);
+//        admin.setOtpExpiry(null);
+//
+//        adminRepository.save(admin);
+//    }
+//
+//}
+
+
 
     @Override
     public void sendResetOtp(String email) {
+
         Admin admin = adminRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email not found"));
 
@@ -66,11 +114,10 @@ public class AuthServiceImpl implements AuthService {
         admin.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
         adminRepository.save(admin);
 
-       
         emailService.sendSimpleMail(
                 email,
                 "Your Password Reset OTP",
-                "Your OTP for resetting password is: " + otp + "\nIt is valid for 10 minutes."
+                "Your OTP is: " + otp + "\nValid for 10 minutes"
         );
     }
 
@@ -79,11 +126,9 @@ public class AuthServiceImpl implements AuthService {
         Admin admin = adminRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email not found"));
 
-        if (admin.getResetOtp() == null) return false;
-        if (!admin.getResetOtp().equals(otp)) return false;
-        if (admin.getOtpExpiry().isBefore(LocalDateTime.now())) return false;
-
-        return true;
+        return admin.getResetOtp() != null &&
+               admin.getResetOtp().equals(otp) &&
+               admin.getOtpExpiry().isAfter(LocalDateTime.now());
     }
 
     @Override
@@ -91,11 +136,10 @@ public class AuthServiceImpl implements AuthService {
         Admin admin = adminRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email not found"));
 
-        admin.setPassword(passwordEncoder.encode(newPassword)); // FIXED ✔
+        admin.setPassword(passwordEncoder.encode(newPassword));
         admin.setResetOtp(null);
         admin.setOtpExpiry(null);
 
         adminRepository.save(admin);
     }
-
 }
