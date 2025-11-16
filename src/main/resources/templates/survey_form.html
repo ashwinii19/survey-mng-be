@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title th:text="${survey.title}">Survey Form</title>
+  <title th:text="${survey != null ? survey.title : 'Survey'}">Survey Form</title>
 
   <style>
     body { font-family: Arial; background:#f7f8fa; padding:40px; }
@@ -29,11 +29,14 @@
 
 <body>
 
-<h2 th:text="'Survey: ' + ${survey.title}"></h2>
+<h2 th:text="'Survey: ' + ${survey != null ? survey.title : ''}"></h2>
 
 <form th:action="@{'/survey/' + ${survey.id} + '/submit'}" method="post">
 
-  <input type="hidden" name="employeeId" th:value="${employee.employeeId}" />
+  <!-- SAFE fallback: if employee is null, don't explode -->
+  <input type="hidden"
+         name="employeeId"
+         th:value="${employee != null ? employee.employeeId : ''}" />
 
   <div th:each="q : ${survey.questions}" class="question">
 

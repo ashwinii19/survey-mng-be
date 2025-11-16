@@ -22,8 +22,13 @@ public class Survey {
 	private String description;
 
 	private boolean published;
-	private LocalDateTime createdAt;
+	@Column(name = "published_at")
 	private LocalDateTime publishedAt;
+
+	@Column(name = "created_at")
+	private LocalDateTime createdAt;
+
+	private boolean editable = true;   
 
 	private String formLink;
 	

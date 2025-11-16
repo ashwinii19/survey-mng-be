@@ -118,14 +118,23 @@ public class SurveyResponseServiceImpl implements SurveyResponseService {
     public void submitSurvey(Long surveyId, String employeeId, List<com.survey.entity.QuestionResponse> answers) {
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
+//        Employee employee = employeeRepository.findByEmployeeId(employeeId)
+//                .orElseThrow(() -> new RuntimeException("Employee not found"));
+//
+//        SurveyResponse response = SurveyResponse.builder()
+//                .survey(survey)
+//                .employeeId(employee.getEmployeeId())
+//                .submittedAt(LocalDateTime.now())
+//                .build();
+        
         Employee employee = employeeRepository.findByEmployeeId(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new RuntimeException("Employee not found: " + employeeId));
 
-        SurveyResponse response = SurveyResponse.builder()
-                .survey(survey)
-                .employeeId(employee.getEmployeeId())
-                .submittedAt(LocalDateTime.now())
-                .build();
+        SurveyResponse response = new SurveyResponse();
+        response.setSurvey(survey);
+        response.setEmployeeId(employee.getEmployeeId());
+        response.setSubmittedAt(LocalDateTime.now());
+
 
         for (com.survey.entity.QuestionResponse answer : answers) {
             answer.setSurveyResponse(response);

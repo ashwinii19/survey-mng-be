@@ -23,22 +23,35 @@ public class SurveyFormController {
     private final QuestionRepository questionRepository;
     private final QuestionResponseRepository questionResponseRepository;
 
+    // -------------------------------------------------------------
+    // SHOW FORM (Employee OPTIONAL) -> No more "Employee not found"
+    // -------------------------------------------------------------
     @GetMapping("/{surveyId}/form")
     public String showSurveyForm(@PathVariable Long surveyId,
-                                 @RequestParam String employeeId,
+                                 @RequestParam(required = false) String employeeId,
                                  Model model) {
 
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        Employee employee = employeeRepository.findByEmployeeId(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+        Employee employee = null;
+
+        // employeeId is OPTIONAL
+        if (employeeId != null && !employeeId.isBlank()) {
+            employee = employeeRepository.findByEmployeeId(employeeId)
+                    .orElse(null); // ❗ DO NOT THROW ERROR
+        }
 
         model.addAttribute("survey", survey);
         model.addAttribute("employee", employee);
+        model.addAttribute("employeeId", employeeId);
+
         return "survey_form";
     }
 
+    // -------------------------------------------------------------
+    // SUBMIT FORM
+    // -------------------------------------------------------------
     @PostMapping("/{surveyId}/submit")
     public String submitSurvey(@PathVariable Long surveyId,
                                @RequestParam String employeeId,
@@ -51,27 +64,26 @@ public class SurveyFormController {
         Employee employee = employeeRepository.findByEmployeeId(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Save main response
+        // main response
         SurveyResponse response = new SurveyResponse();
         response.setSurvey(survey);
         response.setEmployeeId(employeeId);
         response.setSubmittedAt(LocalDateTime.now());
         surveyResponseRepository.save(response);
 
-        // Save questions
+        // question responses
         List<Question> questions = questionRepository.findBySurveyId(surveyId);
 
         for (Question q : questions) {
-
             String key = "q_" + q.getId();
             String answer = formData.get(key);
 
-            // CHECKBOX MULTIPLE VALUES
+            // CHECKBOX
             if (q.getQuestionType().equalsIgnoreCase("CHECKBOX")) {
                 List<String> selected = formData.entrySet().stream()
                         .filter(e -> e.getKey().startsWith(key))
                         .map(Map.Entry::getValue)
-                        .toList();
+                        .collect(Collectors.toList());
                 answer = String.join(", ", selected);
             }
 
@@ -82,8 +94,6 @@ public class SurveyFormController {
                 qr.setEmployeeId(employeeId);
                 qr.setAnswerText(answer.trim());
                 questionResponseRepository.save(qr);
-
-                System.out.println("Saved: " + q.getText() + " -> " + answer);
             }
         }
 

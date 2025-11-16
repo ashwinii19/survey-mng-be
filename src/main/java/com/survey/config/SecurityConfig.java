@@ -40,19 +40,22 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
                 // ✅ Publicly accessible endpoints (NO JWT needed)
-            		.requestMatchers(
-            		        "/api/auth/login",
-            		        "/api/auth/forgot-password",
-            		        "/api/auth/verify-otp",
-            		        "/api/auth/reset-password",
-            		        "/survey/**",
-            		        "/v3/api-docs/**",
-            		        "/swagger-ui/**",
-            		        "/swagger-ui.html",
-            		        "/", "/index.html",
-            		        "/css/**", "/js/**", "/images/**"
-            		).permitAll()
-
+                .requestMatchers(
+                        "/survey/**",             // <-- survey form & submission
+                        "/api/auth/login",        // login
+                        "/api/auth/forgot-password",
+        		        "/api/auth/verify-otp",
+        		        "/api/auth/reset-password",
+        		        "/api/**",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/", "/index.html",
+                        "/css/**", "/js/**", "/images/**",
+                        "/survey_success.html"
+                ).permitAll()
+                
+               
 
                 // ✅ Admin APIs require authentication
                 .requestMatchers("/api/admin/**").authenticated()

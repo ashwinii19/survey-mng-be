@@ -32,12 +32,27 @@ public class SurveyServiceImpl implements SurveyService {
     @Value("${app.base-url}")
     private String baseUrl;
 
+
+    // ======================================================================================
+    // CREATE SURVEY
+    // (DO NOT AUTO-PUBLISH)
+    // ======================================================================================
     @Override
     public SurveyResponseDTO createSurvey(SurveyRequestDTO dto) {
+
         Survey survey = new Survey();
         survey.setTitle(dto.getTitle());
         survey.setDescription(dto.getDescription());
+
+        /*
+         * IMPORTANT:
+         * Save-as-draft  → editable=true, published=false
+         * Create-survey → editable=false, published=false
+         * Publishing will be done separately by publishSurvey()
+         */
+        survey.setEditable(dto.isDraft());
         survey.setPublished(false);
+
         survey.setCreatedAt(LocalDateTime.now());
 
         if (dto.getTargetDepartmentName() != null) {
@@ -46,29 +61,41 @@ public class SurveyServiceImpl implements SurveyService {
             survey.setTargetDepartment(dept);
         }
 
+        // Final survey must have questions
+        if (!dto.isDraft() && (dto.getQuestions() == null || dto.getQuestions().isEmpty())) {
+            throw new RuntimeException("Final survey must contain at least one question");
+        }
+
         Survey savedSurvey = surveyRepository.save(survey);
 
+        // Form link
         String generatedLink = baseUrl + "/survey/" + savedSurvey.getId() + "/form";
         savedSurvey.setFormLink(generatedLink);
         surveyRepository.save(savedSurvey);
 
+        // Save questions
         if (dto.getQuestions() != null && !dto.getQuestions().isEmpty()) {
             List<Question> questions = dto.getQuestions().stream()
                     .map(qDto -> {
                         Question q = new Question();
                         q.setText(qDto.getText());
-                        q.setQuestionType(qDto.getType().toUpperCase()); // "TEXT", "RADIO", etc.
+                        q.setQuestionType(qDto.getType().toUpperCase());
                         q.setOptions(String.join(",", qDto.getOptions()));
-                        q.setRequired(qDto.isRequired()); // ✅ set required field
+                        q.setRequired(qDto.isRequired());
                         q.setSurvey(savedSurvey);
                         return q;
                     }).collect(Collectors.toList());
+
             questionRepository.saveAll(questions);
         }
 
         return mapper.map(savedSurvey, SurveyResponseDTO.class);
     }
 
+
+    // ======================================================================================
+    // GET ALL SURVEYS
+    // ======================================================================================
     @Override
     public List<SurveyResponseDTO> getAllSurveys() {
         return surveyRepository.findAll()
@@ -77,6 +104,10 @@ public class SurveyServiceImpl implements SurveyService {
                 .collect(Collectors.toList());
     }
 
+
+    // ======================================================================================
+    // GET BY ID
+    // ======================================================================================
     @Override
     public SurveyResponseDTO getSurvey(Long id) {
         Survey s = surveyRepository.findById(id)
@@ -84,70 +115,14 @@ public class SurveyServiceImpl implements SurveyService {
         return mapper.map(s, SurveyResponseDTO.class);
     }
 
-//    @Override
-//    @Transactional
-//    public SurveyResponseDTO publishSurvey(Long id) {
-//        Survey survey = surveyRepository.findById(id)
-//                .orElseThrow(() -> new RuntimeException("Survey not found"));
-//
-//        if (survey.isPublished()) {
-//            throw new RuntimeException("Survey is already published");
-//        }
-//
-//        survey.setPublished(true);
-//        survey.setPublishedAt(LocalDateTime.now());
-//        Survey savedSurvey = surveyRepository.save(survey);
-//
-//        Department dept = survey.getTargetDepartment();
-//        List<Employee> employees = (dept != null)
-//                ? employeeRepository.findByDepartmentId(dept.getId())
-//                : employeeRepository.findAll();
-//
-//        if (!employees.isEmpty()) {
-//            List<SurveyAssignment> assignments = employees.stream()
-//                    .map(emp -> SurveyAssignment.builder()
-//                            .survey(savedSurvey)
-//                            .department(dept != null ? dept : emp.getDepartment())
-//                            .employee(emp)
-//                            .assignedAt(LocalDateTime.now())
-//                            .dueDate(LocalDateTime.now().plusDays(7))
-//                            .reminderSent(false)
-//                            .build())
-//                    .collect(Collectors.toList());
-//
-//            assignmentRepository.saveAll(assignments);
-//
-//            for (Employee emp : employees) {
-//                Context context = new Context();
-//                context.setVariable("employeeName", emp.getName());
-//                context.setVariable("surveyTitle", survey.getTitle());
-//                context.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
-//
-//                String personalizedLink = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getId();
-//                context.setVariable("formLink", personalizedLink);
-//
-//                try {
-//                    emailService.sendEmailWithTemplate(
-//                            emp.getEmail(),
-//                            "New Survey Assigned: " + survey.getTitle(),
-//                            "survey-mail-template",
-//                            context
-//                    );
-//                    System.out.println("Email sent successfully to " + emp.getEmail());
-//                } catch (Exception e) {
-//                    System.err.println("Failed to send email to " + emp.getEmail() + ": " + e.getMessage());
-//                }
-//            }
-//        } else {
-//            System.out.println("No employees found to assign!");
-//        }
-//
-//        return mapper.map(savedSurvey, SurveyResponseDTO.class);
-//    }
-    
+
+    // ======================================================================================
+    // PUBLISH SURVEY
+    // ======================================================================================
     @Override
     @Transactional
     public SurveyResponseDTO publishSurvey(Long id) {
+
         Survey survey = surveyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
@@ -155,62 +130,148 @@ public class SurveyServiceImpl implements SurveyService {
             throw new RuntimeException("Survey is already published");
         }
 
+        // Publish now
+        survey.setEditable(false);
         survey.setPublished(true);
         survey.setPublishedAt(LocalDateTime.now());
-        Survey savedSurvey = surveyRepository.save(survey);
+
+        // Make sure DB immediately stores timestamp
+        Survey savedSurvey = surveyRepository.saveAndFlush(survey);
 
         Department dept = survey.getTargetDepartment();
+
         List<Employee> employees = (dept != null)
                 ? employeeRepository.findByDepartmentId(dept.getId())
                 : employeeRepository.findAll();
 
         if (!employees.isEmpty()) {
-        	List<SurveyAssignment> assignments = employees.stream()
-        	        .map(emp -> SurveyAssignment.builder()
-        	                .survey(savedSurvey)
-        	                .department(dept != null ? dept : emp.getDepartment())
-        	                .employeeId(emp.getEmployeeId()) 
-        	                .assignedAt(LocalDateTime.now())
-        	                .dueDate(LocalDateTime.now().plusDays(7))
-        	                .reminderSent(false)
-        	                .build())
-        	        .collect(Collectors.toList());
 
+            List<SurveyAssignment> assignments = employees.stream()
+                    .map(emp -> SurveyAssignment.builder()
+                            .survey(savedSurvey)
+                            .department(dept != null ? dept : emp.getDepartment())
+                            .employeeId(emp.getEmployeeId()) 
+                            .assignedAt(LocalDateTime.now())
+                            .dueDate(LocalDateTime.now().plusDays(7))
+                            .reminderSent(false)
+                            .build()
+                    )
+                    .collect(Collectors.toList());
 
             assignmentRepository.saveAll(assignments);
 
+            // Email sending
             for (Employee emp : employees) {
-                Context context = new Context();
-                context.setVariable("employeeName", emp.getName());
-                context.setVariable("surveyTitle", survey.getTitle());
-                context.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
 
-                // ✅ FIXED: Use business employeeId (E101) instead of numeric DB id
-                String personalizedLink = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getEmployeeId();
-                context.setVariable("formLink", personalizedLink);
+                Context ctx = new Context();
+                ctx.setVariable("employeeName", emp.getName());
+                ctx.setVariable("surveyTitle", survey.getTitle());
+                ctx.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
+
+                String link = baseUrl + "/survey/" + savedSurvey.getId()
+                        + "/form?employeeId=" + emp.getEmployeeId();
+                ctx.setVariable("formLink", link);
 
                 try {
                     emailService.sendEmailWithTemplate(
                             emp.getEmail(),
                             "New Survey Assigned: " + survey.getTitle(),
                             "survey-mail-template",
-                            context
+                            ctx
                     );
-                    System.out.println("Email sent successfully to " + emp.getEmail());
-                } catch (Exception e) {
-                    System.err.println("Failed to send email to " + emp.getEmail() + ": " + e.getMessage());
+                } catch (Exception ex) {
+                    System.err.println("Email error: " + ex.getMessage());
                 }
             }
-        } else {
-            System.out.println("No employees found to assign!");
         }
 
         return mapper.map(savedSurvey, SurveyResponseDTO.class);
     }
 
 
+
+    // ======================================================================================
+    // DELETE SURVEY
+    // ======================================================================================
     @Override
+    @Transactional
     public void deleteSurvey(Long id) {
+
+        // Step 1 — Delete all assignments linked with this survey
+        assignmentRepository.deleteAllBySurveyId(id);
+
+        // Step 2 — Delete all questions linked with this survey
+        questionRepository.deleteAllBySurveyId(id);
+
+        // Step 3 — Now safely delete the survey
         surveyRepository.deleteById(id);
     }
+
+
+
+    // ======================================================================================
+    // UPDATE SURVEY
+    // ======================================================================================
+    @Override
+    @Transactional
+    public SurveyResponseDTO updateSurvey(Long id, SurveyRequestDTO dto) {
+
+        Survey survey = surveyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Survey not found"));
+
+        if (!survey.isEditable()) {
+            throw new RuntimeException("Survey is not editable");
+        }
+
+        survey.setTitle(dto.getTitle());
+        survey.setDescription(dto.getDescription());
+
+        // CASE 1: Still a draft → editable=true
+        if (dto.isDraft()) {
+            survey.setEditable(true);
+            survey.setPublished(false); 
+        }
+
+        // CASE 2: Final save (not draft) → editable=false
+        else {
+            survey.setEditable(false);
+            survey.setPublished(false); // Will only publish after user clicks publish
+        }
+
+        if (dto.getTargetDepartmentName() != null) {
+            Department dept = departmentRepository.findByName(dto.getTargetDepartmentName())
+                    .orElseThrow(() -> new RuntimeException("Department not found"));
+            survey.setTargetDepartment(dept);
+        }
+
+        // Remove old questions
+        questionRepository.deleteAllBySurveyId(id);
+
+        if (!dto.isDraft() && (dto.getQuestions() == null || dto.getQuestions().isEmpty())) {
+            throw new RuntimeException("Final survey must contain at least one question");
+        }
+
+        // Save new questions
+        if (dto.getQuestions() != null) {
+            List<Question> questions = dto.getQuestions().stream()
+                    .map(qDto -> {
+                        Question q = new Question();
+                        q.setText(qDto.getText());
+                        q.setQuestionType(qDto.getType().toUpperCase());
+                        q.setOptions(String.join(",", qDto.getOptions()));
+                        q.setRequired(qDto.isRequired());
+                        q.setSurvey(survey);
+                        return q;
+                    })
+                    .collect(Collectors.toList());
+
+            questionRepository.saveAll(questions);
+        }
+
+        Survey updated = surveyRepository.saveAndFlush(survey); // flush fix
+
+        return mapper.map(updated, SurveyResponseDTO.class);
+    }
+
 }
+

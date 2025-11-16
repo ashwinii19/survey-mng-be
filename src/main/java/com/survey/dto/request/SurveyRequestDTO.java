@@ -22,9 +22,11 @@ public class SurveyRequestDTO {
     private String description;
 
 //    private boolean published;
+    private boolean draft;
+
 
     private String targetDepartmentName;
 
-    @NotEmpty(message = "Survey must contain at least one question")
+//    @NotEmpty(message = "Survey must contain at least one question")
     private List<@Valid QuestionRequestDTO> questions;
 }
