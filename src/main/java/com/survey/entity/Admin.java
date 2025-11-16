@@ -35,6 +35,13 @@ public class Admin {
 
     @Column(name = "otp_expiry")
     private LocalDateTime otpExpiry;
+    
+    @Column(name = "profile_image")
+    private String profileImage;
+    
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
 
 }

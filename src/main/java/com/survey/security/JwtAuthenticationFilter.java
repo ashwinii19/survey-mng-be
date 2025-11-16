@@ -36,6 +36,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // ✅ Allow public URLs without JWT
         return path.startsWith("/api/auth/login")
+        		|| path.startsWith("/api/auth/forgot-password")
+                || path.startsWith("/api/auth/verify-otp")
+                || path.startsWith("/api/auth/reset-password")
+                || path.startsWith("/uploads")            // ✅ ADDED
+                || path.startsWith("/survey")
+                || path.startsWith("/css")
+                || path.startsWith("/js")
+                || path.startsWith("/images")
                 || path.startsWith("/survey")
                 || path.startsWith("/css")
                 || path.startsWith("/js")
@@ -47,6 +55,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.equals("/survey_success.html");
     }
 
+//    @Override
+//    protected void doFilterInternal(HttpServletRequest request,
+//                                    HttpServletResponse response,
+//                                    FilterChain filterChain)
+//            throws ServletException, IOException {
+//
+//        String token = getTokenFromRequest(request);
+//
+//        if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+//            String email = jwtTokenProvider.getUsername(token);
+//            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+//
+//            UsernamePasswordAuthenticationToken authentication =
+//                    new UsernamePasswordAuthenticationToken(
+//                            userDetails, null, userDetails.getAuthorities());
+//            authentication.setDetails(
+//                    new WebAuthenticationDetailsSource().buildDetails(request));
+//            SecurityContextHolder.getContext().setAuthentication(authentication);
+//        }
+//
+//        filterChain.doFilter(request, response);
+//    }
+    
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -56,19 +87,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = getTokenFromRequest(request);
 
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+
             String email = jwtTokenProvider.getUsername(token);
+
+            // 🔥 Add this line (missing)
+            request.setAttribute("email", email);
+
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
+
             authentication.setDetails(
                     new WebAuthenticationDetailsSource().buildDetails(request));
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         filterChain.doFilter(request, response);
     }
+
 
     private String getTokenFromRequest(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
