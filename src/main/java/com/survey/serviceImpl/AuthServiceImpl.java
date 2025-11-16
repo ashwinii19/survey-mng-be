@@ -8,13 +8,22 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.survey.dto.request.AdminLoginDTO;
+import com.survey.dto.request.AdminUpdateRequestDTO;
+import com.survey.dto.response.AdminProfileResponseDTO;
 import com.survey.dto.response.AdminResponseDTO;
 import com.survey.entity.Admin;
 import com.survey.repository.AdminRepository;
 import com.survey.security.JwtTokenProvider;
 import com.survey.service.AuthService;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
 
 import lombok.RequiredArgsConstructor;
 
@@ -142,4 +151,66 @@ public class AuthServiceImpl implements AuthService {
 
         adminRepository.save(admin);
     }
+    
+    @Override
+    public AdminProfileResponseDTO updateProfile(String email, AdminUpdateRequestDTO dto) {
+
+        Admin admin = adminRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        admin.setName(dto.getName());
+        admin.setEmail(dto.getEmail());
+        admin.setUpdatedAt(LocalDateTime.now());
+
+        adminRepository.save(admin);
+
+        AdminProfileResponseDTO res = new AdminProfileResponseDTO();
+        res.setId(admin.getId());
+        res.setName(admin.getName());
+        res.setEmail(admin.getEmail());
+        res.setRole("Admin");
+        res.setProfileImage(admin.getProfileImage());
+
+        return res;
+    }
+
+    // CHANGE PASSWORD ----------------------------------------------
+    @Override
+    public void changePassword(String email, String oldPassword, String newPassword) {
+
+        Admin admin = adminRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        if (!passwordEncoder.matches(oldPassword, admin.getPassword())) {
+            throw new RuntimeException("Old password is incorrect");
+        }
+
+        admin.setPassword(passwordEncoder.encode(newPassword));
+        adminRepository.save(admin);
+    }
+
+
+
+    // UPLOAD IMAGE --------------------------------------------------
+    @Override
+    public String uploadProfileImage(String email, MultipartFile file) throws Exception {
+
+        Admin admin = adminRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        String fileName = email.replace("@", "_") + "_" + System.currentTimeMillis() + ".png";
+
+        Path uploadPath = Paths.get("uploads");
+        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+
+        Files.copy(file.getInputStream(),
+                uploadPath.resolve(fileName),
+                StandardCopyOption.REPLACE_EXISTING);
+
+        admin.setProfileImage(fileName);
+        adminRepository.save(admin);
+
+        return fileName;
+    }
+
 }
