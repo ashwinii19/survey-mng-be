@@ -56,12 +56,13 @@ public class AuthServiceImpl implements AuthService {
         if (adminRepository.count() == 0) {
             Admin admin = new Admin();
             admin.setName("Super Admin");
-            admin.setEmail("admin@company.com");
+            admin.setEmail("admin@survey.com"); // FIXED
             admin.setPassword(passwordEncoder.encode("admin123"));
             adminRepository.save(admin);
-            System.out.println("✅ Default admin created → admin@company.com / admin123");
+            System.out.println("✅ Default admin created → admin@survey.com / admin123");
         }
     }
+
 //    
 //
 //    @Override
