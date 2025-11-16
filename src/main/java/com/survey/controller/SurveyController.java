@@ -51,4 +51,12 @@ public class SurveyController {
         surveyService.deleteSurvey(id);
         return ResponseEntity.noContent().build();
     }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<SurveyResponseDTO> updateSurvey(
+            @PathVariable Long id,
+            @Valid @RequestBody SurveyRequestDTO dto) {
+        return ResponseEntity.ok(surveyService.updateSurvey(id, dto));
+    }
+
 }

@@ -15,4 +15,7 @@ public interface SurveyService {
 	SurveyResponseDTO publishSurvey(Long id);
 
 	void deleteSurvey(Long id);
+	
+	public SurveyResponseDTO updateSurvey(Long id, SurveyRequestDTO dto);
 }
+

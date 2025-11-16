@@ -17,4 +17,7 @@ public interface SurveyAssignmentRepository extends JpaRepository<SurveyAssignme
     List<SurveyAssignment> findByEmployeeId(String employeeId);
 
     List<SurveyAssignment> findByDepartmentId(Long departmentId);
+    
+    void deleteAllBySurveyId(Long surveyId);
+
 }

@@ -10,19 +10,31 @@ import java.util.List;
 
 public interface DashboardService {
 
-    DashboardResponseDTO getDashboardData(Long surveyId, Long departmentId);
-
-    List<Survey> listSurveys();
-
-    List<Department> listDepartments();
-
-    List<DepartmentStatsDTO> getDepartmentStats(Long surveyId, Long departmentId);
-
-    SurveyStatsDTO getSurveyStats(Long surveyId);
-
-    List<String> listSubmittedEmployees(Long surveyId, Long departmentId);
-
-    List<String> listPendingEmployees(Long surveyId, Long departmentId);
-
-    List<Survey> recentSurveys(int limit);
+//    DashboardResponseDTO getDashboardData(Long surveyId, Long departmentId);
+//
+//    List<Survey> listSurveys();
+//
+//    List<Department> listDepartments();
+//
+//    List<DepartmentStatsDTO> getDepartmentStats(Long surveyId, Long departmentId);
+//
+//    SurveyStatsDTO getSurveyStats(Long surveyId);
+//
+//    List<String> listSubmittedEmployees(Long surveyId, Long departmentId);
+//
+//    List<String> listPendingEmployees(Long surveyId, Long departmentId);
+//
+//    List<Survey> recentSurveys(int limit);
+	
+	public DashboardResponseDTO getDashboardData(Long surveyId, Long departmentId);
+	
+	public List<DepartmentStatsDTO> getDepartmentStats(Long surveyId, Long departmentId);
+	
+	public SurveyStatsDTO getSurveyStats(Long surveyId);
+	
+	public List<String> listSubmittedEmployees(Long surveyId, Long departmentId);
+	
+	public List<String> listPendingEmployees(Long surveyId, Long departmentId);
+	
+	
 }

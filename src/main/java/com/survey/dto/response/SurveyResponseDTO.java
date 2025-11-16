@@ -12,6 +12,7 @@ public class SurveyResponseDTO {
 	private String title;
 	private String description;
 	private boolean published;
+	 private boolean editable;
 	private String formLink; 
 	private LocalDateTime createdAt;
 	private LocalDateTime publishedAt;
