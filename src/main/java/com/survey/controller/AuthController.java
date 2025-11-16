@@ -309,13 +309,25 @@
 //}
 package com.survey.controller;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.survey.dto.request.*;
+import com.survey.dto.request.AdminLoginDTO;
+import com.survey.dto.request.AdminPasswordChangeRequestDTO;
+import com.survey.dto.request.AdminUpdateRequestDTO;
+import com.survey.dto.request.ForgotPasswordRequestDTO;
+import com.survey.dto.request.ResetPasswordDTO;
+import com.survey.dto.request.VerifyOtpDTO;
 import com.survey.dto.response.AdminResponseDTO;
 import com.survey.entity.Admin;
 import com.survey.repository.AdminRepository;
@@ -371,15 +383,17 @@ public class AuthController {
         Admin admin = adminRepository.findByEmail(email).orElse(null);
         if (admin == null) return ResponseEntity.status(404).body("Admin not found");
 
-        return ResponseEntity.ok(Map.of(
-                "id", admin.getId(),
-                "name", admin.getName(),
-                "email", admin.getEmail(),
-                "role", "Admin",
-                "department", "Human Resources",
-                "profileImage", admin.getProfileImage()
-        ));
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", admin.getId());
+        map.put("name", admin.getName());
+        map.put("email", admin.getEmail());
+        map.put("role", "Admin");
+        map.put("department", "Human Resources");
+        map.put("profileImage", admin.getProfileImage()); // NULL allowed
+
+        return ResponseEntity.ok(map);
     }
+
 
     // UPDATE PROFILE
     @PutMapping("/update-profile")
