@@ -51,4 +51,11 @@ public class ReminderController {
     public ResponseEntity<Map<String, List<String>>> getSubmissionStatus(@PathVariable Long id) {
         return ResponseEntity.ok(reminderService.getSubmissionStatus(id));
     }
+    
+    @PostMapping("/run-scheduler-now/{id}")
+    public ResponseEntity<String> runSchedulerForOne(@PathVariable Long id) {
+        reminderService.sendReminderNow(id);
+        return ResponseEntity.ok("Reminder triggered successfully");
+    }
+
 }
