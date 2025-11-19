@@ -7,8 +7,10 @@ import lombok.Setter;
 @Setter
 public class DepartmentStatsDTO {
 
-    private String departmentName;
-    private long totalEmployees;
-    private long submitted;
-    private long pending;
+	private Long departmentId;
+	private String departmentName;
+	private int totalEmployees;
+	private int submitted;
+	private int pending;
+	private double responseRate;
 }
