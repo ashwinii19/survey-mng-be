@@ -15,4 +15,7 @@ public class DashboardResponseDTO {
 
     private List<DepartmentStatsDTO> departmentStats;
     private SurveyStatsDTO surveyStats;
+    
+    private List<String> submittedEmployees; // list of employee names / display strings
+    private List<String> pendingEmployees;
 }
