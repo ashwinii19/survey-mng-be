@@ -1,6 +1,7 @@
 //
 //
 //
+//
 //package com.survey.controller;
 //
 //import java.io.File;
@@ -143,21 +144,56 @@
 //        }
 //    }
 //    
-//    
+//    // ✅ BATCH STATUS API - Add this method
 //    @GetMapping("/status/{batchLogId}")
 //    public ResponseEntity<?> getBatchStatus(@PathVariable Long batchLogId) {
 //        try {
+//            log.info("Fetching batch status for ID: {}", batchLogId);
+//            
 //            EmployeeBatchLog batchLog = batchLogRepository.findById(batchLogId)
 //                    .orElseThrow(() -> new RuntimeException("Batch log not found with ID: " + batchLogId));
 //            
-//            return ResponseEntity.ok(batchLog);
-//        } catch (Exception e) {
-//            log.error("Error fetching batch status for ID: {}", batchLogId, e);
+//            // Create response map (you can also create a DTO if preferred)
+//            Map<String, Object> response = Map.of(
+//                "id", batchLog.getId().toString(),
+//                "status", batchLog.getStatus(),
+//                "totalCount", batchLog.getTotalCount(),
+//                "processedCount", batchLog.getProcessedCount(),
+//                "failedCount", batchLog.getFailedCount(),
+//                "createdAt", batchLog.getCreatedAt()
+//            );
+//            
+//            log.info("Batch status for ID {}: {}", batchLogId, response);
+//            return ResponseEntity.ok(response);
+//            
+//        } catch (RuntimeException e) {
+//            log.error("Batch log not found for ID: {}", batchLogId);
 //            return ResponseEntity.status(HttpStatus.NOT_FOUND)
 //                    .body(Map.of("message", "Batch log not found with ID: " + batchLogId));
+//        } catch (Exception e) {
+//            log.error("Error fetching batch status for ID: {}", batchLogId, e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of("message", "Error fetching batch status: " + e.getMessage()));
+//        }
+//    }
+//    
+//    // ✅ OPTIONAL: Get all batch logs
+//    @GetMapping("/all")
+//    public ResponseEntity<?> getAllBatchLogs() {
+//        try {
+//            var batchLogs = batchLogRepository.findAll();
+//            log.info("Fetched {} batch logs", batchLogs.size());
+//            return ResponseEntity.ok(batchLogs);
+//        } catch (Exception e) {
+//            log.error("Error fetching all batch logs", e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of("message", "Error fetching batch logs: " + e.getMessage()));
 //        }
 //    }
 //}
+
+
+
 
 
 
@@ -170,6 +206,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -182,6 +219,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.survey.entity.EmployeeBatchLog;
 import com.survey.repository.EmployeeBatchLogRepository;
+import com.survey.service.OnboardingEmailService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -195,10 +233,12 @@ public class EmployeeBatchController {
     private final JobLauncher jobLauncher;
     private final Job importEmployeeJob;
     private final EmployeeBatchLogRepository batchLogRepository;
+    private final OnboardingEmailService onboardingEmailService;
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> importEmployees(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "sendWelcomeEmail", defaultValue = "false") boolean sendWelcomeEmail) {
 
         // Validate file
         if (file == null || file.isEmpty()) {
@@ -223,8 +263,12 @@ public class EmployeeBatchController {
         batchLog.setFailedCount(0);
         batchLog = batchLogRepository.save(batchLog);
 
-        log.info("Created batch log with ID: {} for file: {} with {} total records", 
-                batchLog.getId(), file.getOriginalFilename(), totalRecords);
+        log.info("Created batch log with ID: {} for file: {} with {} total records. SendWelcomeEmail: {}", 
+                batchLog.getId(), file.getOriginalFilename(), totalRecords, sendWelcomeEmail);
+
+        // ✅ FIX: Create a final variable for use in lambda
+        final Long finalBatchLogId = batchLog.getId();
+        final boolean finalSendWelcomeEmail = sendWelcomeEmail;
 
         Path tempFilePath = null;
         try {
@@ -244,11 +288,12 @@ public class EmployeeBatchController {
 
             log.info("Saved uploaded file to temporary location: {}", tempFilePath);
 
-            // Build job parameters (file path + timestamp + batchLogId)
+            // Build job parameters
             var jobParams = new JobParametersBuilder()
                     .addString("filePath", tempFilePath.toAbsolutePath().toString())
-                    .addLong("time", System.currentTimeMillis()) // ensures a unique job instance
-                    .addLong("batchLogId", batchLog.getId()) // for tracking failed records
+                    .addLong("time", System.currentTimeMillis())
+                    .addLong("batchLogId", finalBatchLogId)
+                    .addString("sendWelcomeEmail", String.valueOf(finalSendWelcomeEmail))
                     .toJobParameters();
 
             // Update batch log status to processing
@@ -256,13 +301,32 @@ public class EmployeeBatchController {
             batchLogRepository.save(batchLog);
 
             // Launch the batch job
-            log.info("Launching batch job for batchLogId: {}", batchLog.getId());
+            log.info("Launching batch job for batchLogId: {}", finalBatchLogId);
             jobLauncher.run(importEmployeeJob, jobParams);
+
+            // ✅ AUTOMATIC EMAIL TRIGGER - Using final variables
+            if (finalSendWelcomeEmail) {
+                log.info("🚀 MANUAL TRIGGER: Starting welcome emails for batch: {}", finalBatchLogId);
+                
+                // Start email sending in background after a short delay
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        // Wait 3 seconds to ensure batch processing is complete
+                        Thread.sleep(3000);
+                        log.info("🎯 Starting email sending for batch: {}", finalBatchLogId);
+                        onboardingEmailService.sendWelcomeEmailsForBatch(finalBatchLogId);
+                    } catch (Exception e) {
+                        log.error("❌ Manual email trigger failed for batch {}: {}", finalBatchLogId, e.getMessage());
+                    }
+                });
+            }
 
             return ResponseEntity.ok(Map.of(
                 "message", "Employee batch import job started successfully.",
-                "batchLogId", batchLog.getId().toString(),
-                "totalRecords", String.valueOf(totalRecords)
+                "batchLogId", finalBatchLogId.toString(),
+                "totalRecords", String.valueOf(totalRecords),
+                "sendWelcomeEmail", String.valueOf(finalSendWelcomeEmail),
+                "emailsTriggered", "AUTOMATIC"
             ));
 
         } catch (Exception e) {
@@ -270,11 +334,11 @@ public class EmployeeBatchController {
             batchLog.setStatus("FAILED");
             batchLogRepository.save(batchLog);
             
-            log.error("Batch import failed for batchLogId: {}", batchLog.getId(), e);
+            log.error("Batch import failed for batchLogId: {}", finalBatchLogId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                         "message", "Employee batch import failed: " + e.getMessage(),
-                        "batchLogId", batchLog.getId().toString()
+                        "batchLogId", finalBatchLogId.toString()
                     ));
         } finally {
             // Clean up temp file
@@ -303,7 +367,7 @@ public class EmployeeBatchController {
         }
     }
     
-    // ✅ BATCH STATUS API - Add this method
+    // ✅ BATCH STATUS API
     @GetMapping("/status/{batchLogId}")
     public ResponseEntity<?> getBatchStatus(@PathVariable Long batchLogId) {
         try {
@@ -312,7 +376,6 @@ public class EmployeeBatchController {
             EmployeeBatchLog batchLog = batchLogRepository.findById(batchLogId)
                     .orElseThrow(() -> new RuntimeException("Batch log not found with ID: " + batchLogId));
             
-            // Create response map (you can also create a DTO if preferred)
             Map<String, Object> response = Map.of(
                 "id", batchLog.getId().toString(),
                 "status", batchLog.getStatus(),
@@ -347,6 +410,24 @@ public class EmployeeBatchController {
             log.error("Error fetching all batch logs", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error fetching batch logs: " + e.getMessage()));
+        }
+    }
+
+    // ✅ MANUAL EMAIL TRIGGER API (For testing)
+    @PostMapping("/trigger-emails/{batchLogId}")
+    public ResponseEntity<Map<String, String>> manuallyTriggerEmails(@PathVariable Long batchLogId) {
+        try {
+            log.info("🔧 MANUAL EMAIL TRIGGER for batch: {}", batchLogId);
+            onboardingEmailService.sendWelcomeEmailsForBatch(batchLogId);
+            return ResponseEntity.ok(Map.of(
+                "message", "Email sending triggered manually",
+                "batchLogId", batchLogId.toString(),
+                "status", "STARTED"
+            ));
+        } catch (Exception e) {
+            log.error("Manual email trigger failed for batch {}: {}", batchLogId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to trigger emails: " + e.getMessage()));
         }
     }
 }

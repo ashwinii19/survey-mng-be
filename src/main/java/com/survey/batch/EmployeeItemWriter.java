@@ -66,7 +66,7 @@ public class EmployeeItemWriter implements ItemWriter<Employee> {
                     Integer currentProcessed = batchLog.getProcessedCount();
                     Integer currentFailed = batchLog.getFailedCount();
                     
-                    // Handle null values by defaulting to 0
+                    
                     int updatedProcessed = (currentProcessed != null ? currentProcessed : 0) + processed;
                     int updatedFailed = (currentFailed != null ? currentFailed : 0) + failed;
                     
