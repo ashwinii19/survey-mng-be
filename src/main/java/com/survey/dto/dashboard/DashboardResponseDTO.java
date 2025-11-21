@@ -18,4 +18,6 @@ public class DashboardResponseDTO {
     
     private List<String> submittedEmployees; // list of employee names / display strings
     private List<String> pendingEmployees;
+
+    private String error;
 }

@@ -25,7 +25,8 @@ public class SurveyRequestDTO {
     private boolean draft;
 
 
-    private String targetDepartmentName;
+    private List<Long> targetDepartments;  // IDs list
+
 
 //    @NotEmpty(message = "Survey must contain at least one question")
     private List<@Valid QuestionRequestDTO> questions;
