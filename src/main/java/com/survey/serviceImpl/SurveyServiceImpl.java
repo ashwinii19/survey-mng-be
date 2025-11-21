@@ -1,20 +1,34 @@
 package com.survey.serviceImpl;
 
-import com.survey.dto.request.SurveyRequestDTO;
-import com.survey.dto.response.SurveyResponseDTO;
-import com.survey.entity.*;
-import com.survey.repository.*;
-import com.survey.service.SurveyService;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.survey.dto.request.SurveyRequestDTO;
+import com.survey.dto.response.QuestionResponseDTO;
+import com.survey.dto.response.SurveyResponseDTO;
+import com.survey.entity.Department;
+import com.survey.entity.Employee;
+import com.survey.entity.Question;
+import com.survey.entity.Survey;
+import com.survey.entity.SurveyAssignment;
+import com.survey.entity.SurveyDepartmentMap;
+import com.survey.repository.DepartmentRepository;
+import com.survey.repository.EmployeeRepository;
+import com.survey.repository.QuestionRepository;
+import com.survey.repository.SurveyAssignmentRepository;
+import com.survey.repository.SurveyDepartmentMapRepository;
+import com.survey.repository.SurveyRepository;
+import com.survey.service.SurveyService;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -26,16 +40,15 @@ public class SurveyServiceImpl implements SurveyService {
     private final EmployeeRepository employeeRepository;
     private final SurveyAssignmentRepository assignmentRepository;
     private final QuestionRepository questionRepository;
+    private final SurveyDepartmentMapRepository surveyDepartmentMapRepository;
     private final EmailService emailService;
     private final ModelMapper mapper;
 
     @Value("${app.base-url}")
     private String baseUrl;
 
-
     // ======================================================================================
     // CREATE SURVEY
-    // (DO NOT AUTO-PUBLISH)
     // ======================================================================================
     @Override
     public SurveyResponseDTO createSurvey(SurveyRequestDTO dto) {
@@ -43,55 +56,39 @@ public class SurveyServiceImpl implements SurveyService {
         Survey survey = new Survey();
         survey.setTitle(dto.getTitle());
         survey.setDescription(dto.getDescription());
-
-        /*
-         * IMPORTANT:
-         * Save-as-draft  → editable=true, published=false
-         * Create-survey → editable=false, published=false
-         * Publishing will be done separately by publishSurvey()
-         */
         survey.setEditable(dto.isDraft());
         survey.setPublished(false);
-
         survey.setCreatedAt(LocalDateTime.now());
 
-        if (dto.getTargetDepartmentName() != null) {
-            Department dept = departmentRepository.findByName(dto.getTargetDepartmentName())
-                    .orElseThrow(() -> new RuntimeException("Department not found"));
-            survey.setTargetDepartment(dept);
-        }
+        Survey savedSurvey = surveyRepository.save(survey);
 
-        // Final survey must have questions
+        // ⭐ MULTIPLE DEPT SUPPORT
+        createDepartmentMappingsForSurvey(dto.getTargetDepartments(), savedSurvey);
+
         if (!dto.isDraft() && (dto.getQuestions() == null || dto.getQuestions().isEmpty())) {
             throw new RuntimeException("Final survey must contain at least one question");
         }
 
-        Survey savedSurvey = surveyRepository.save(survey);
-
-        // Form link
-        String generatedLink = baseUrl + "/survey/" + savedSurvey.getId() + "/form";
-        savedSurvey.setFormLink(generatedLink);
+        savedSurvey.setFormLink(baseUrl + "/survey/" + savedSurvey.getId() + "/form");
         surveyRepository.save(savedSurvey);
 
         // Save questions
-        if (dto.getQuestions() != null && !dto.getQuestions().isEmpty()) {
-            List<Question> questions = dto.getQuestions().stream()
-                    .map(qDto -> {
-                        Question q = new Question();
-                        q.setText(qDto.getText());
-                        q.setQuestionType(qDto.getType().toUpperCase());
-                        q.setOptions(String.join(",", qDto.getOptions()));
-                        q.setRequired(qDto.isRequired());
-                        q.setSurvey(savedSurvey);
-                        return q;
-                    }).collect(Collectors.toList());
+        if (dto.getQuestions() != null) {
+            List<Question> questions = dto.getQuestions().stream().map(qDto -> {
+                Question q = new Question();
+                q.setText(qDto.getText());
+                q.setQuestionType(qDto.getType().toUpperCase());
+                q.setOptions(String.join(",", qDto.getOptions()));
+                q.setRequired(qDto.isRequired());
+                q.setSurvey(savedSurvey);
+                return q;
+            }).collect(Collectors.toList());
 
             questionRepository.saveAll(questions);
         }
 
-        return mapper.map(savedSurvey, SurveyResponseDTO.class);
+        return toDTO(savedSurvey);
     }
-
 
     // ======================================================================================
     // GET ALL SURVEYS
@@ -99,22 +96,19 @@ public class SurveyServiceImpl implements SurveyService {
     @Override
     public List<SurveyResponseDTO> getAllSurveys() {
         return surveyRepository.findAll()
-                .stream()
-                .map(s -> mapper.map(s, SurveyResponseDTO.class))
+                .stream().map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-
     // ======================================================================================
-    // GET BY ID
+    // GET SURVEY BY ID
     // ======================================================================================
     @Override
     public SurveyResponseDTO getSurvey(Long id) {
         Survey s = surveyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
-        return mapper.map(s, SurveyResponseDTO.class);
+        return toDTO(s);
     }
-
 
     // ======================================================================================
     // PUBLISH SURVEY
@@ -127,87 +121,78 @@ public class SurveyServiceImpl implements SurveyService {
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
         if (survey.isPublished()) {
-            throw new RuntimeException("Survey is already published");
+            throw new RuntimeException("Survey already published");
         }
 
-        // Publish now
         survey.setEditable(false);
         survey.setPublished(true);
         survey.setPublishedAt(LocalDateTime.now());
 
-        // Make sure DB immediately stores timestamp
         Survey savedSurvey = surveyRepository.saveAndFlush(survey);
 
-        Department dept = survey.getTargetDepartment();
+        List<SurveyDepartmentMap> mappings = surveyDepartmentMapRepository.findBySurveyId(savedSurvey.getId());
 
-        List<Employee> employees = (dept != null)
-                ? employeeRepository.findByDepartmentId(dept.getId())
-                : employeeRepository.findAll();
+        // No mapping means ALL departments
+        if (mappings == null || mappings.isEmpty()) {
+            List<Department> all = departmentRepository.findAll();
+            mappings = all.stream()
+                    .map(d -> SurveyDepartmentMap.builder().survey(savedSurvey).department(d).build())
+                    .collect(Collectors.toList());
+        }
 
-        if (!employees.isEmpty()) {
+        // Assign employees
+        for (SurveyDepartmentMap map : mappings) {
+
+            Department dept = map.getDepartment();
+            List<Employee> employees = employeeRepository.findByDepartmentId(dept.getId());
+
+            if (employees.isEmpty()) continue;
 
             List<SurveyAssignment> assignments = employees.stream()
                     .map(emp -> SurveyAssignment.builder()
                             .survey(savedSurvey)
-                            .department(dept != null ? dept : emp.getDepartment())
-                            .employeeId(emp.getEmployeeId()) 
+                            .department(dept)
+                            .employeeId(emp.getEmployeeId())
                             .assignedAt(LocalDateTime.now())
                             .dueDate(LocalDateTime.now().plusDays(7))
                             .reminderSent(false)
-                            .build()
-                    )
+                            .build())
                     .collect(Collectors.toList());
 
             assignmentRepository.saveAll(assignments);
 
-            // Email sending
+            // Send Mail
             for (Employee emp : employees) {
-
-                Context ctx = new Context();
-                ctx.setVariable("employeeName", emp.getName());
-                ctx.setVariable("surveyTitle", survey.getTitle());
-                ctx.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
-
-                String link = baseUrl + "/survey/" + savedSurvey.getId()
-                        + "/form?employeeId=" + emp.getEmployeeId();
-                ctx.setVariable("formLink", link);
-
                 try {
+                    Context ctx = new Context();
+                    ctx.setVariable("employeeName", emp.getName());
+                    ctx.setVariable("surveyTitle", savedSurvey.getTitle());
+                    ctx.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
+                    ctx.setVariable("formLink", baseUrl + "/survey/" + savedSurvey.getId() + "/form?employeeId=" + emp.getEmployeeId());
+
                     emailService.sendEmailWithTemplate(
                             emp.getEmail(),
-                            "New Survey Assigned: " + survey.getTitle(),
+                            "New Survey Assigned",
                             "survey-mail-template",
                             ctx
                     );
-                } catch (Exception ex) {
-                    System.err.println("Email error: " + ex.getMessage());
-                }
+                } catch (Exception ignored) {}
             }
         }
 
-        return mapper.map(savedSurvey, SurveyResponseDTO.class);
+        return toDTO(savedSurvey);
     }
-
-
 
     // ======================================================================================
     // DELETE SURVEY
     // ======================================================================================
     @Override
-    @Transactional
     public void deleteSurvey(Long id) {
-
-        // Step 1 — Delete all assignments linked with this survey
         assignmentRepository.deleteAllBySurveyId(id);
-
-        // Step 2 — Delete all questions linked with this survey
         questionRepository.deleteAllBySurveyId(id);
-
-        // Step 3 — Now safely delete the survey
+        surveyDepartmentMapRepository.deleteAllBySurveyId(id);
         surveyRepository.deleteById(id);
     }
-
-
 
     // ======================================================================================
     // UPDATE SURVEY
@@ -225,53 +210,110 @@ public class SurveyServiceImpl implements SurveyService {
 
         survey.setTitle(dto.getTitle());
         survey.setDescription(dto.getDescription());
+        survey.setEditable(dto.isDraft());
+        survey.setPublished(false);
 
-        // CASE 1: Still a draft → editable=true
-        if (dto.isDraft()) {
-            survey.setEditable(true);
-            survey.setPublished(false); 
-        }
-
-        // CASE 2: Final save (not draft) → editable=false
-        else {
-            survey.setEditable(false);
-            survey.setPublished(false); // Will only publish after user clicks publish
-        }
-
-        if (dto.getTargetDepartmentName() != null) {
-            Department dept = departmentRepository.findByName(dto.getTargetDepartmentName())
-                    .orElseThrow(() -> new RuntimeException("Department not found"));
-            survey.setTargetDepartment(dept);
-        }
-
-        // Remove old questions
         questionRepository.deleteAllBySurveyId(id);
 
         if (!dto.isDraft() && (dto.getQuestions() == null || dto.getQuestions().isEmpty())) {
-            throw new RuntimeException("Final survey must contain at least one question");
+            throw new RuntimeException("Final survey must have at least one question");
         }
 
-        // Save new questions
+        // Add Questions
         if (dto.getQuestions() != null) {
-            List<Question> questions = dto.getQuestions().stream()
-                    .map(qDto -> {
-                        Question q = new Question();
-                        q.setText(qDto.getText());
-                        q.setQuestionType(qDto.getType().toUpperCase());
-                        q.setOptions(String.join(",", qDto.getOptions()));
-                        q.setRequired(qDto.isRequired());
-                        q.setSurvey(survey);
-                        return q;
-                    })
-                    .collect(Collectors.toList());
-
+            List<Question> questions = dto.getQuestions().stream().map(qDto -> {
+                Question q = new Question();
+                q.setText(qDto.getText());
+                q.setQuestionType(qDto.getType().toUpperCase());
+                q.setOptions(String.join(",", qDto.getOptions()));
+                q.setRequired(qDto.isRequired());
+                q.setSurvey(survey);
+                return q;
+            }).collect(Collectors.toList());
             questionRepository.saveAll(questions);
         }
 
-        Survey updated = surveyRepository.saveAndFlush(survey); // flush fix
+        Survey updated = surveyRepository.saveAndFlush(survey);
 
-        return mapper.map(updated, SurveyResponseDTO.class);
+        // ⭐ MULTI DEPARTMENT
+        createDepartmentMappingsForSurvey(dto.getTargetDepartments(), updated);
+
+        return toDTO(updated);
     }
 
-}
+    // ======================================================================================
+    // CREATE MULTIPLE MAPPINGS
+    // ======================================================================================
+    private void createDepartmentMappingsForSurvey(List<Long> deptIds, Survey survey) {
 
+        surveyDepartmentMapRepository.deleteAllBySurveyId(survey.getId());
+
+        List<SurveyDepartmentMap> mappings = new ArrayList<>();
+
+        if (deptIds == null || deptIds.isEmpty()) {
+            // ALL departments
+            List<Department> all = departmentRepository.findAll();
+            for (Department d : all) {
+                mappings.add(SurveyDepartmentMap.builder().survey(survey).department(d).build());
+            }
+        } else {
+            List<Department> deptList = departmentRepository.findAllById(deptIds);
+            for (Department d : deptList) {
+                mappings.add(SurveyDepartmentMap.builder().survey(survey).department(d).build());
+            }
+        }
+
+        surveyDepartmentMapRepository.saveAll(mappings);
+    }
+
+    // ======================================================================================
+    // DTO MAPPING
+    // ======================================================================================
+    private SurveyResponseDTO toDTO(Survey survey) {
+
+        SurveyResponseDTO dto = new SurveyResponseDTO();
+
+        dto.setId(survey.getId());
+        dto.setTitle(survey.getTitle());
+        dto.setDescription(survey.getDescription());
+        dto.setPublished(survey.isPublished());
+        dto.setEditable(survey.isEditable());
+        dto.setFormLink(survey.getFormLink());
+        dto.setCreatedAt(survey.getCreatedAt());
+        dto.setPublishedAt(survey.getPublishedAt());
+
+        // -------- QUESTIONS --------
+        dto.setQuestions(
+                survey.getQuestions().stream()
+                        .map(q -> {
+                            QuestionResponseDTO qDto = new QuestionResponseDTO();
+                            qDto.setId(q.getId());
+                            qDto.setText(q.getText());
+                            qDto.setType(q.getQuestionType());
+                            qDto.setOptions(List.of(q.getOptions().split(",")));
+                            qDto.setRequired(q.isRequired());
+                            return qDto;
+                        })
+                        .collect(Collectors.toList())
+        );
+
+        // -------- DEPARTMENTS --------
+        List<SurveyDepartmentMap> maps = surveyDepartmentMapRepository.findBySurveyId(survey.getId());
+        long totalDept = departmentRepository.count();
+
+        List<String> deptNames;
+
+        if (maps.isEmpty() || maps.size() == totalDept) {
+            deptNames = List.of("ALL");
+        } else {
+            deptNames = maps.stream()
+                    .map(m -> m.getDepartment().getName())
+                    .collect(Collectors.toList());
+        }
+
+        dto.setTargetDepartments(deptNames);
+        dto.setTargetDepartmentName(String.join(", ", deptNames));
+
+        return dto;
+    }
+}

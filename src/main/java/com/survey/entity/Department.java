@@ -68,4 +68,8 @@ public class Department {
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     @JsonIgnore // ADD this to break the circular reference
     private List<Employee> employees;
+    
+    @OneToMany(mappedBy = "department")
+    @JsonIgnore
+    private List<SurveyDepartmentMap> surveyMappings;
 }
