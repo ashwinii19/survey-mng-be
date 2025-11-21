@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome Email</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #f8f9fa; 
+            margin: 0; 
+            padding: 20px;
+        }
+        .email-container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+        }
+        .header { 
+            background: linear-gradient(135deg, #009B8C, #007A6E); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+        }
+        .header h1 { 
+            font-size: 28px; 
+            font-weight: 700; 
+            margin-bottom: 10px; 
+        }
+        .content { 
+            padding: 40px 30px; 
+        }
+        .employee-info { 
+            background: #f8f9fa; 
+            border-radius: 8px; 
+            padding: 25px; 
+            margin: 25px 0; 
+            border-left: 4px solid #009B8C; 
+        }
+        .info-item { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 10px; 
+            padding: 8px 0; 
+            border-bottom: 1px solid #e9ecef; 
+        }
+        .info-label { 
+            font-weight: 600; 
+            color: #495057; 
+        }
+        .info-value { 
+            color: #009B8C; 
+            font-weight: 600; 
+        }
+        .footer { 
+            background: #f8f9fa; 
+            padding: 30px; 
+            text-align: center; 
+            color: #6c757d; 
+            border-top: 1px solid #e9ecef; 
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Welcome Aboard! 🎉</h1>
+            <p>We're excited to have you join our team</p>
+        </div>
+        
+        <div class="content">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="font-size: 48px; margin-bottom: 20px;">👋</div>
+                <h2>Hello <span th:text="${employeeName}">Employee</span>!</h2>
+                <p>Welcome to our company! We're thrilled to have you as part of our growing team.</p>
+            </div>
+            
+            <div class="employee-info">
+                <h3 style="color: #009B8C; margin-bottom: 20px;">Your Onboarding Details</h3>
+                <div class="info-item">
+                    <span class="info-label">Employee Name:</span>
+                    <span class="info-value" th:text="${employeeName}">Employee Name</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Employee ID:</span>
+                    <span class="info-value" th:text="${employeeId}">Employee ID</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Start Date:</span>
+                    <span class="info-value" th:text="${currentDate}">Start Date</span>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <p>We look forward to working with you and achieving great things together!</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2024 Our Company. All rights reserved.</p>
+            <p style="font-size: 12px; margin-top: 10px;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
