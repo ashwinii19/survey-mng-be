@@ -18,7 +18,8 @@ public class SurveyResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime publishedAt;
 
-    private List<String> targetDepartments;         // list of names
-    private List<QuestionResponseDTO> questions;    // all questions
-    private String targetDepartmentName;            // "ALL" / "HR,IT"
+    private List<String> targetDepartments;    
+    private String targetPosition;
+    private List<QuestionResponseDTO> questions;    
+    private String targetDepartmentName;        
 }

@@ -27,6 +27,7 @@ public class SurveyRequestDTO {
 
     private List<Long> targetDepartments;  // IDs list
 
+    private String targetPosition;
 
 //    @NotEmpty(message = "Survey must contain at least one question")
     private List<@Valid QuestionRequestDTO> questions;

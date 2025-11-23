@@ -59,6 +59,8 @@ public class SurveyServiceImpl implements SurveyService {
         survey.setEditable(dto.isDraft());
         survey.setPublished(false);
         survey.setCreatedAt(LocalDateTime.now());
+        
+        survey.setTargetPosition(dto.getTargetPosition());
 
         Survey savedSurvey = surveyRepository.save(survey);
 
@@ -113,6 +115,76 @@ public class SurveyServiceImpl implements SurveyService {
     // ======================================================================================
     // PUBLISH SURVEY
     // ======================================================================================
+//    @Override
+//    @Transactional
+//    public SurveyResponseDTO publishSurvey(Long id) {
+//
+//        Survey survey = surveyRepository.findById(id)
+//                .orElseThrow(() -> new RuntimeException("Survey not found"));
+//
+//        if (survey.isPublished()) {
+//            throw new RuntimeException("Survey already published");
+//        }
+//
+//        survey.setEditable(false);
+//        survey.setPublished(true);
+//        survey.setPublishedAt(LocalDateTime.now());
+//
+//        Survey savedSurvey = surveyRepository.saveAndFlush(survey);
+//
+//        List<SurveyDepartmentMap> mappings = surveyDepartmentMapRepository.findBySurveyId(savedSurvey.getId());
+//
+//        // No mapping means ALL departments
+//        if (mappings == null || mappings.isEmpty()) {
+//            List<Department> all = departmentRepository.findAll();
+//            mappings = all.stream()
+//                    .map(d -> SurveyDepartmentMap.builder().survey(savedSurvey).department(d).build())
+//                    .collect(Collectors.toList());
+//        }
+//
+//        // Assign employees
+//        for (SurveyDepartmentMap map : mappings) {
+//
+//            Department dept = map.getDepartment();
+//            List<Employee> employees = employeeRepository.findByDepartmentId(dept.getId());
+//
+//            if (employees.isEmpty()) continue;
+//
+//            List<SurveyAssignment> assignments = employees.stream()
+//                    .map(emp -> SurveyAssignment.builder()
+//                            .survey(savedSurvey)
+//                            .department(dept)
+//                            .employeeId(emp.getEmployeeId())
+//                            .assignedAt(LocalDateTime.now())
+//                            .dueDate(LocalDateTime.now().plusDays(7))
+//                            .reminderSent(false)
+//                            .build())
+//                    .collect(Collectors.toList());
+//
+//            assignmentRepository.saveAll(assignments);
+//
+//            // Send Mail
+//            for (Employee emp : employees) {
+//                try {
+//                    Context ctx = new Context();
+//                    ctx.setVariable("employeeName", emp.getName());
+//                    ctx.setVariable("surveyTitle", savedSurvey.getTitle());
+//                    ctx.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
+//                    ctx.setVariable("formLink", baseUrl + "/survey/" + savedSurvey.getId() + "/form?employeeId=" + emp.getEmployeeId());
+//
+//                    emailService.sendEmailWithTemplate(
+//                            emp.getEmail(),
+//                            "New Survey Assigned",
+//                            "survey-mail-template",
+//                            ctx
+//                    );
+//                } catch (Exception ignored) {}
+//            }
+//        }
+//
+//        return toDTO(savedSurvey);
+//    }
+    
     @Override
     @Transactional
     public SurveyResponseDTO publishSurvey(Long id) {
@@ -127,61 +199,86 @@ public class SurveyServiceImpl implements SurveyService {
         survey.setEditable(false);
         survey.setPublished(true);
         survey.setPublishedAt(LocalDateTime.now());
-
         Survey savedSurvey = surveyRepository.saveAndFlush(survey);
 
-        List<SurveyDepartmentMap> mappings = surveyDepartmentMapRepository.findBySurveyId(savedSurvey.getId());
+        List<SurveyDepartmentMap> mappings =
+                surveyDepartmentMapRepository.findBySurveyId(savedSurvey.getId());
 
-        // No mapping means ALL departments
-        if (mappings == null || mappings.isEmpty()) {
-            List<Department> all = departmentRepository.findAll();
-            mappings = all.stream()
-                    .map(d -> SurveyDepartmentMap.builder().survey(savedSurvey).department(d).build())
+        String selectedPosition = survey.getTargetPosition();
+        boolean hasPosition = selectedPosition != null && !selectedPosition.isBlank();
+
+        boolean hasDepartments = mappings != null && !mappings.isEmpty();
+
+        List<Employee> finalEmployees = new ArrayList<>();
+
+        // CASE 1 — DEPARTMENT + POSITION
+        if (hasDepartments && hasPosition) {
+
+            for (SurveyDepartmentMap map : mappings) {
+                List<Employee> emps = employeeRepository.findByDepartmentId(map.getDepartment().getId());
+                finalEmployees.addAll(
+                        emps.stream()
+                                .filter(e -> selectedPosition.equalsIgnoreCase(e.getPosition()))
+                                .collect(Collectors.toList())
+                );
+            }
+
+        }
+        // CASE 2 — ONLY POSITION
+        else if (!hasDepartments && hasPosition) {
+
+            finalEmployees = employeeRepository.findAll().stream()
+                    .filter(e -> selectedPosition.equalsIgnoreCase(e.getPosition()))
                     .collect(Collectors.toList());
+
+        }
+        // CASE 3 — ONLY DEPARTMENTS (NORMAL)
+        else if (hasDepartments && !hasPosition) {
+
+            for (SurveyDepartmentMap map : mappings) {
+                finalEmployees.addAll(employeeRepository.findByDepartmentId(map.getDepartment().getId()));
+            }
+
+        }
+        // CASE 4 — Send to ALL employees
+        else {
+            finalEmployees = employeeRepository.findAll();
         }
 
-        // Assign employees
-        for (SurveyDepartmentMap map : mappings) {
+        // ====== ASSIGN SURVEY + SEND EMAIL ======
+        for (Employee emp : finalEmployees) {
 
-            Department dept = map.getDepartment();
-            List<Employee> employees = employeeRepository.findByDepartmentId(dept.getId());
+            SurveyAssignment assign = SurveyAssignment.builder()
+                    .survey(savedSurvey)
+                    .department(emp.getDepartment())
+                    .employeeId(emp.getEmployeeId())
+                    .assignedAt(LocalDateTime.now())
+                    .dueDate(LocalDateTime.now().plusDays(7))
+                    .reminderSent(false)
+                    .build();
 
-            if (employees.isEmpty()) continue;
+            assignmentRepository.save(assign);
 
-            List<SurveyAssignment> assignments = employees.stream()
-                    .map(emp -> SurveyAssignment.builder()
-                            .survey(savedSurvey)
-                            .department(dept)
-                            .employeeId(emp.getEmployeeId())
-                            .assignedAt(LocalDateTime.now())
-                            .dueDate(LocalDateTime.now().plusDays(7))
-                            .reminderSent(false)
-                            .build())
-                    .collect(Collectors.toList());
+            try {
+                Context ctx = new Context();
+                ctx.setVariable("employeeName", emp.getName());
+                ctx.setVariable("surveyTitle", savedSurvey.getTitle());
+                ctx.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
+                ctx.setVariable("formLink",
+                        baseUrl + "/survey/" + savedSurvey.getId() + "/form?employeeId=" + emp.getEmployeeId());
 
-            assignmentRepository.saveAll(assignments);
-
-            // Send Mail
-            for (Employee emp : employees) {
-                try {
-                    Context ctx = new Context();
-                    ctx.setVariable("employeeName", emp.getName());
-                    ctx.setVariable("surveyTitle", savedSurvey.getTitle());
-                    ctx.setVariable("dueDate", LocalDateTime.now().plusDays(7).toLocalDate().toString());
-                    ctx.setVariable("formLink", baseUrl + "/survey/" + savedSurvey.getId() + "/form?employeeId=" + emp.getEmployeeId());
-
-                    emailService.sendEmailWithTemplate(
-                            emp.getEmail(),
-                            "New Survey Assigned",
-                            "survey-mail-template",
-                            ctx
-                    );
-                } catch (Exception ignored) {}
-            }
+                emailService.sendEmailWithTemplate(
+                        emp.getEmail(),
+                        "New Survey Assigned",
+                        "survey-mail-template",
+                        ctx
+                );
+            } catch (Exception ignored) {}
         }
 
         return toDTO(savedSurvey);
     }
+
 
     // ======================================================================================
     // DELETE SURVEY
@@ -212,6 +309,7 @@ public class SurveyServiceImpl implements SurveyService {
         survey.setDescription(dto.getDescription());
         survey.setEditable(dto.isDraft());
         survey.setPublished(false);
+        survey.setTargetPosition(dto.getTargetPosition());
 
         questionRepository.deleteAllBySurveyId(id);
 
@@ -269,6 +367,54 @@ public class SurveyServiceImpl implements SurveyService {
     // ======================================================================================
     // DTO MAPPING
     // ======================================================================================
+//    private SurveyResponseDTO toDTO(Survey survey) {
+//
+//        SurveyResponseDTO dto = new SurveyResponseDTO();
+//
+//        dto.setId(survey.getId());
+//        dto.setTitle(survey.getTitle());
+//        dto.setDescription(survey.getDescription());
+//        dto.setPublished(survey.isPublished());
+//        dto.setEditable(survey.isEditable());
+//        dto.setFormLink(survey.getFormLink());
+//        dto.setCreatedAt(survey.getCreatedAt());
+//        dto.setPublishedAt(survey.getPublishedAt());
+//
+//        // -------- QUESTIONS --------
+//        dto.setQuestions(
+//                survey.getQuestions().stream()
+//                        .map(q -> {
+//                            QuestionResponseDTO qDto = new QuestionResponseDTO();
+//                            qDto.setId(q.getId());
+//                            qDto.setText(q.getText());
+//                            qDto.setType(q.getQuestionType());
+//                            qDto.setOptions(List.of(q.getOptions().split(",")));
+//                            qDto.setRequired(q.isRequired());
+//                            return qDto;
+//                        })
+//                        .collect(Collectors.toList())
+//        );
+//
+//        // -------- DEPARTMENTS --------
+//        List<SurveyDepartmentMap> maps = surveyDepartmentMapRepository.findBySurveyId(survey.getId());
+//        long totalDept = departmentRepository.count();
+//
+//        List<String> deptNames;
+//
+//        if (maps.isEmpty() || maps.size() == totalDept) {
+//            deptNames = List.of("ALL");
+//        } else {
+//            deptNames = maps.stream()
+//                    .map(m -> m.getDepartment().getName())
+//                    .collect(Collectors.toList());
+//        }
+//
+//        dto.setTargetDepartments(deptNames);
+//        dto.setTargetDepartmentName(String.join(", ", deptNames));
+//
+//        return dto;
+//    }
+    
     private SurveyResponseDTO toDTO(Survey survey) {
 
         SurveyResponseDTO dto = new SurveyResponseDTO();
@@ -281,8 +427,9 @@ public class SurveyServiceImpl implements SurveyService {
         dto.setFormLink(survey.getFormLink());
         dto.setCreatedAt(survey.getCreatedAt());
         dto.setPublishedAt(survey.getPublishedAt());
+        dto.setTargetPosition(survey.getTargetPosition());
 
-        // -------- QUESTIONS --------
+        // Questions
         dto.setQuestions(
                 survey.getQuestions().stream()
                         .map(q -> {
@@ -297,7 +444,7 @@ public class SurveyServiceImpl implements SurveyService {
                         .collect(Collectors.toList())
         );
 
-        // -------- DEPARTMENTS --------
+        // Departments
         List<SurveyDepartmentMap> maps = surveyDepartmentMapRepository.findBySurveyId(survey.getId());
         long totalDept = departmentRepository.count();
 
