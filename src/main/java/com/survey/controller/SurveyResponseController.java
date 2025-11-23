@@ -1,5 +1,7 @@
 package com.survey.controller;
 
+import com.survey.dto.response.QuestionAnswerResponseDTO;
+import com.survey.dto.response.QuestionStatsDTO;
 import com.survey.dto.response.SurveySubmissionResponseDTO;
 import com.survey.service.SurveyResponseService;
 import lombok.RequiredArgsConstructor;
@@ -47,4 +49,17 @@ public class SurveyResponseController {
                 )
         );
     }
+
+    @GetMapping("/{surveyId}/questions/stats")
+    public ResponseEntity<List<QuestionStatsDTO>> getQuestionStats(@PathVariable Long surveyId) {
+        return ResponseEntity.ok(surveyResponseService.getQuestionStatsForSurvey(surveyId));
+    }
+
+    @GetMapping("/{surveyId}/questions/{questionId}/answers")
+    public ResponseEntity<List<QuestionAnswerResponseDTO>> getAnswersForQuestion(
+            @PathVariable Long surveyId,
+            @PathVariable Long questionId) {
+        return ResponseEntity.ok(surveyResponseService.getAnswersForQuestion(surveyId, questionId));
+    }
 }
+

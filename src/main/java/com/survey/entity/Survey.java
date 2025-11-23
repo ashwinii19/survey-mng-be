@@ -35,10 +35,12 @@ public class Survey {
 	private Long id;
 
 	private String title;
+	
 	@Column(length = 2000)
 	private String description;
 
 	private boolean published;
+	
 	@Column(name = "published_at")
 	private LocalDateTime publishedAt;
 
@@ -48,6 +50,9 @@ public class Survey {
 	private boolean editable = true;
 
 	private String formLink;
+
+	@Column(name = "target_position")
+	private String targetPosition;
 
 	@OneToMany(mappedBy = "survey", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonIgnore
