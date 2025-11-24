@@ -2,94 +2,231 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title th:text="${survey != null ? survey.title : 'Survey'}">Survey Form</title>
+  <title th:text="${survey != null ? survey.title : 'Survey'}"></title>
 
   <style>
-    body { font-family: Arial; background:#f7f8fa; padding:40px; }
-    h2 { color:#004aad; text-align:center; }
-    form {
-      background:white; max-width:800px; margin:30px auto;
-      padding:30px; border-radius:10px; box-shadow:0 0 10px #ccc;
+    /* ================================
+       GENERAL PAGE STYLE
+    =================================*/
+    body {
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: #f1f5f4;
+      padding: 40px;
+      margin: 0;
     }
-    .question {
-      margin-bottom:25px; padding:15px; border-bottom:1px solid #eee;
+
+    .form-container {
+      max-width: 850px;
+      background: white;
+      margin: auto;
+      padding: 35px 45px;
+      border-radius: 14px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
     }
-    label { font-weight:bold; margin-bottom:10px; display:block; }
-    textarea, input[type="text"], select {
-      width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;
+
+    /* ================================== 
+       GREETING / SUMMARY BOX 
+    ===================================*/
+    .intro-box {
+      background: #e6f7f5;
+      border-left: 8px solid #009B8C;
+      padding: 18px 22px;
+      border-radius: 10px;
+      margin-bottom: 25px;
     }
-    .option-group label { display:inline-block; margin-right:15px; }
-    button {
-      background:#004aad; padding:10px 25px; border:none;
-      color:white; border-radius:6px; cursor:pointer;
+
+    .intro-box h3 {
+      margin: 0;
+      font-size: 20px;
+      color: #009B8C;
+      font-weight: 700;
     }
-    button:hover { background:#00348f; }
+
+    .intro-box p {
+      margin-top: 8px;
+      color: #333;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #009B8C;
+      margin-top: 0;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* ================================
+       QUESTION CARD
+    =================================*/
+    .question-card {
+      background: #ffffff;
+      padding: 22px 25px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      border: 1px solid #e0e6f0;
+      transition: 0.3s ease;
+    }
+
+    .question-card:hover {
+      box-shadow: 0 6px 15px rgba(0,0,0,0.10);
+      transform: translateY(-2px);
+    }
+
+    .question-label {
+      font-weight: 600;
+      font-size: 17px;
+      margin-bottom: 12px;
+      color: #333;
+      display: block;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cdd3dd;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: 0.2s;
+      background: #fafbfc;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #009B8C;
+      background: white;
+      box-shadow: 0 0 5px rgba(0, 155, 140, 0.3);
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    .option-row {
+      margin: 6px 0;
+      font-size: 15px;
+    }
+
+    .option-row input {
+      margin-right: 8px;
+      transform: scale(1.2);
+      accent-color: #009B8C;
+    }
+
+    /* ================================
+       SUBMIT BUTTON
+    =================================*/
+    .submit-btn {
+      background: #009B8C;
+      padding: 12px 35px;
+      color: white;
+      border-radius: 8px;
+      border: none;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      display: inline-block;
+      transition: 0.25s ease;
+    }
+
+    .submit-btn:hover {
+      background: #007e74;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(0,0,0,0.2);
+    }
+
+    .submit-wrapper {
+      text-align: center;
+      margin-top: 30px;
+    }
   </style>
 </head>
 
 <body>
 
-<h2 th:text="'Survey: ' + ${survey != null ? survey.title : ''}"></h2>
+  <div class="form-container">
 
-<form th:action="@{'/survey/' + ${survey.id} + '/submit'}" method="post">
+    <!-- Survey Title -->
+    <h2 th:text="${survey != null ? survey.title : 'Survey'}"></h2>
 
-  <!-- SAFE fallback: if employee is null, don't explode -->
-  <input type="hidden"
-         name="employeeId"
-         th:value="${employee != null ? employee.employeeId : ''}" />
-
-  <div th:each="q : ${survey.questions}" class="question">
-
-    <label th:text="${q.text}">Question Text</label>
-
-    <!-- TEXT -->
-    <div th:if="${q.questionType == 'TEXT'}">
-      <input type="text" th:name="'q_' + ${q.id}" placeholder="Enter your answer..." />
+    <!-- INTRO SUMMARY BOX -->
+    <div class="intro-box">
+      <h3 th:text="'Hello, ' + (${employee != null ? employee.name : 'Employee'}) + ' 👋'"></h3>
+      <p>
+        Thank you for taking the time to complete this survey.  
+        Your feedback helps us improve our processes, culture, and work experience.
+        <br><br>
+        Please answer the questions honestly. Your responses will remain confidential.
+      </p>
     </div>
 
-    <!-- TEXTAREA -->
-    <div th:if="${q.questionType == 'TEXTAREA'}">
-      <textarea th:name="'q_' + ${q.id}" rows="3" placeholder="Enter your answer..."></textarea>
-    </div>
+    <form th:action="@{'/survey/' + ${survey.id} + '/submit'}" method="post">
 
-    <!-- RADIO -->
-    <div th:if="${q.questionType == 'RADIO'}" class="option-group">
-      <div th:each="opt : ${#strings.arraySplit(q.options, ',')}">
-        <label>
-          <input type="radio" th:name="'q_' + ${q.id}" th:value="${opt.trim()}">
-          <span th:text="${opt.trim()}"></span>
-        </label>
+      <!-- hidden employeeId -->
+      <input type="hidden"
+             name="employeeId"
+             th:value="${employee != null ? employee.employeeId : ''}" />
+
+      <!-- Questions -->
+      <div th:each="q : ${survey.questions}" class="question-card">
+
+        <label class="question-label" th:text="${q.text}">Question</label>
+
+        <!-- TEXT -->
+        <div th:if="${q.questionType == 'TEXT'}">
+          <input type="text" th:name="'q_' + ${q.id}" placeholder="Type your answer..." />
+        </div>
+
+        <!-- TEXTAREA -->
+        <div th:if="${q.questionType == 'TEXTAREA'}">
+          <textarea th:name="'q_' + ${q.id}" rows="3"
+                    placeholder="Write your response..."></textarea>
+        </div>
+
+        <!-- RADIO -->
+        <div th:if="${q.questionType == 'RADIO'}">
+          <div th:each="opt : ${#strings.arraySplit(q.options, ',')}">
+            <label class="option-row">
+              <input type="radio" th:name="'q_' + ${q.id}" th:value="${opt.trim()}">
+              <span th:text="${opt.trim()}"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- CHECKBOX -->
+        <div th:if="${q.questionType == 'CHECKBOX'}">
+          <div th:each="opt, iter : ${#strings.arraySplit(q.options, ',')}">
+            <label class="option-row">
+              <input type="checkbox"
+                     th:name="'q_' + ${q.id} + '_' + ${iter.index}"
+                     th:value="${opt.trim()}">
+              <span th:text="${opt.trim()}"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- DROPDOWN -->
+        <div th:if="${q.questionType == 'DROPDOWN'}">
+          <select th:name="'q_' + ${q.id}">
+            <option value="">-- Select an option --</option>
+            <option th:each="opt : ${#strings.arraySplit(q.options, ',')}"
+                    th:value="${opt.trim()}"
+                    th:text="${opt.trim()}"></option>
+          </select>
+        </div>
+
       </div>
-    </div>
 
-    <!-- CHECKBOX -->
-    <div th:if="${q.questionType == 'CHECKBOX'}" class="option-group">
-      <div th:each="opt, iter : ${#strings.arraySplit(q.options, ',')}">
-        <label>
-          <input type="checkbox"
-                 th:name="'q_' + ${q.id} + '_' + ${iter.index}"
-                 th:value="${opt.trim()}">
-          <span th:text="${opt.trim()}"></span>
-        </label>
+      <div class="submit-wrapper">
+        <button type="submit" class="submit-btn">Submit Response</button>
       </div>
-    </div>
 
-    <!-- DROPDOWN -->
-    <div th:if="${q.questionType == 'DROPDOWN'}">
-      <select th:name="'q_' + ${q.id}">
-        <option value="">-- select --</option>
-        <option th:each="opt : ${#strings.arraySplit(q.options, ',')}"
-                th:value="${opt.trim()}"
-                th:text="${opt.trim()}"></option>
-      </select>
-    </div>
+    </form>
 
   </div>
-
-  <div style="text-align:center">
-    <button type="submit">Submit Survey</button>
-  </div>
-</form>
 
 </body>
 </html>
