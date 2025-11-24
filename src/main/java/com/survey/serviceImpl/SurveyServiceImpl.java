@@ -62,6 +62,27 @@ public class SurveyServiceImpl implements SurveyService {
         
         survey.setTargetPosition(dto.getTargetPosition());
 
+        if (dto.getTargetDepartments() != null && !dto.getTargetDepartments().isEmpty()
+                && dto.getTargetPosition() != null && !dto.getTargetPosition().isBlank()) {
+
+            String selectedPos = dto.getTargetPosition().trim().toLowerCase();
+
+            List<Department> selectedDepts =
+                    departmentRepository.findAllById(dto.getTargetDepartments());
+
+            boolean positionExists = selectedDepts.stream()
+                    .flatMap(d -> employeeRepository.findByDepartmentId(d.getId()).stream())
+                    .anyMatch(emp -> emp.getPosition() != null &&
+                            emp.getPosition().trim().equalsIgnoreCase(selectedPos));
+
+            if (!positionExists) {
+                throw new RuntimeException(
+                        "Selected position '" + dto.getTargetPosition() +
+                                "' does not exist in the selected department(s)."
+                );
+            }
+        }
+        
         Survey savedSurvey = surveyRepository.save(survey);
 
         // ⭐ MULTIPLE DEPT SUPPORT
@@ -311,6 +332,27 @@ public class SurveyServiceImpl implements SurveyService {
         survey.setPublished(false);
         survey.setTargetPosition(dto.getTargetPosition());
 
+        if (dto.getTargetDepartments() != null && !dto.getTargetDepartments().isEmpty()
+                && dto.getTargetPosition() != null && !dto.getTargetPosition().isBlank()) {
+
+            String selectedPos = dto.getTargetPosition().trim().toLowerCase();
+
+            List<Department> selectedDepts =
+                    departmentRepository.findAllById(dto.getTargetDepartments());
+
+            boolean positionExists = selectedDepts.stream()
+                    .flatMap(d -> employeeRepository.findByDepartmentId(d.getId()).stream())
+                    .anyMatch(emp -> emp.getPosition() != null &&
+                            emp.getPosition().trim().equalsIgnoreCase(selectedPos));
+
+            if (!positionExists) {
+                throw new RuntimeException(
+                        "Selected position '" + dto.getTargetPosition() +
+                                "' does not exist in the selected department(s)."
+                );
+            }
+        }
+        
         questionRepository.deleteAllBySurveyId(id);
 
         if (!dto.isDraft() && (dto.getQuestions() == null || dto.getQuestions().isEmpty())) {
