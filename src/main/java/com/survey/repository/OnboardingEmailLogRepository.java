@@ -23,6 +23,8 @@ import java.util.List;
 @Repository
 public interface OnboardingEmailLogRepository extends JpaRepository<OnboardingEmailLog, Long> {
     
+	
+	
     // ✅ Find by employee batch log ID
     OnboardingEmailLog findByEmployeeBatchLogId(Long employeeBatchLogId);
     
