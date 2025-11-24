@@ -20,6 +20,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final SurveyResponseRepository responseRepo;
     private final DepartmentRepository deptRepo;
     private final SurveyDepartmentMapRepository surveyDepartmentMapRepo;
+    private final SurveyAssignmentRepository surveyAssignmentRepo; // NEW
 
     @Override
     public DashboardResponseDTO getDashboardData(Long surveyId, Long departmentId) {
@@ -27,7 +28,7 @@ public class DashboardServiceImpl implements DashboardService {
         DashboardResponseDTO dto = new DashboardResponseDTO();
 
         // ------------------------------
-        // 1) Load Survey
+        // 1) Load Survey (if provided)
         // ------------------------------
         Survey survey = null;
         if (surveyId != null) {
@@ -39,71 +40,119 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         // ------------------------------
-        // 2) Survey → Department mapping
+        // 2) Check explicit assignments (survey_assignments)
+        //    If explicit assignments exist we will honor them.
         // ------------------------------
-        List<SurveyDepartmentMap> mappings =
-                (surveyId == null)
-                        ? new ArrayList<>()
-                        : surveyDepartmentMapRepo.findBySurveyId(surveyId);
+        List<SurveyAssignment> explicitAssignments = (surveyId == null)
+                ? Collections.emptyList()
+                : surveyAssignmentRepo.findBySurveyId(surveyId);
 
-        long totalDeptCount = deptRepo.count();
-        boolean isAllDeptSurvey = (mappings.isEmpty() || mappings.size() == totalDeptCount);
-
-        // ------------------------------
-        // 3) Determine Final Departments
-        // ------------------------------
-        List<Department> finalDepartments;
-
-        if (departmentId != null) {
-
-            Department dept = deptRepo.findById(departmentId).orElse(null);
-            if (dept == null) {
-                dto.setError("DEPARTMENT_NOT_FOUND");
-                return dto;
-            }
-
-            boolean allowed = isAllDeptSurvey ||
-                    mappings.stream().anyMatch(m -> m.getDepartment().getId().equals(departmentId));
-
-            if (!allowed) {
+        // If departmentId filter provided, keep only assignments for that department
+        if (departmentId != null && explicitAssignments != null && !explicitAssignments.isEmpty()) {
+            explicitAssignments = explicitAssignments.stream()
+                    .filter(sa -> sa.getDepartment() != null && Objects.equals(sa.getDepartment().getId(), departmentId))
+                    .collect(Collectors.toList());
+            // if after filtering explicitAssignments becomes empty -> it means the survey not assigned to that department
+            if (explicitAssignments.isEmpty()) {
                 dto.setError("NOT_ASSIGNED");
-                return dto;   // ⭐ return clean response, no 500
-            }
-
-            finalDepartments = List.of(dept);
-
-        } else {
-
-            if (isAllDeptSurvey) {
-                finalDepartments = deptRepo.findAll();
-            } else {
-                finalDepartments = mappings
-                        .stream()
-                        .map(SurveyDepartmentMap::getDepartment)
-                        .toList();
+                return dto;
             }
         }
 
         // ------------------------------
-        // 4) Employees
+        // 3) Build allowed employee list (based on explicit assignments OR department mapping fallback)
         // ------------------------------
-        List<Employee> employees = new ArrayList<>();
-        finalDepartments.forEach(d ->
-                employees.addAll(employeeRepo.findByDepartmentId(d.getId()))
-        );
+        List<Employee> allowedEmployees = new ArrayList<>();
 
+        if (explicitAssignments != null && !explicitAssignments.isEmpty()) {
+            // Use explicit assignment entries (unique employeeIds)
+            Set<String> empIds = explicitAssignments.stream()
+                    .map(SurveyAssignment::getEmployeeId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            if (!empIds.isEmpty()) {
+                // fetch employees by employeeId list (assumes employeeRepo has method findByEmployeeIdIn)
+                // Otherwise fetch individually as fallback
+                List<Employee> byIds = employeeRepo.findByEmployeeIdIn(new ArrayList<>(empIds));
+                if (byIds == null || byIds.isEmpty()) {
+                    // fallback: try per-id retrieval
+                    for (String id : empIds) {
+                        employeeRepo.findByEmployeeId(id).ifPresent(allowedEmployees::add);
+                    }
+                } else {
+                    allowedEmployees.addAll(byIds);
+                }
+            }
+        } else {
+            // FALLBACK: department mapping (existing logic) + optional departmentId filter
+            List<SurveyDepartmentMap> mappings =
+                    (surveyId == null) ? new ArrayList<>() : surveyDepartmentMapRepo.findBySurveyId(surveyId);
+
+            long totalDeptCount = deptRepo.count();
+            boolean isAllDeptSurvey = (mappings.isEmpty() || mappings.size() == totalDeptCount);
+
+            List<Department> finalDepartments;
+
+            if (departmentId != null) {
+                Department dept = deptRepo.findById(departmentId).orElse(null);
+                if (dept == null) {
+                    dto.setError("DEPARTMENT_NOT_FOUND");
+                    return dto;
+                }
+
+                boolean allowed = isAllDeptSurvey ||
+                        mappings.stream().anyMatch(m -> m.getDepartment().getId().equals(departmentId));
+
+                if (!allowed) {
+                    dto.setError("NOT_ASSIGNED");
+                    return dto;
+                }
+
+                finalDepartments = List.of(dept);
+            } else {
+                if (isAllDeptSurvey) {
+                    finalDepartments = deptRepo.findAll();
+                } else {
+                    finalDepartments = mappings.stream()
+                            .map(SurveyDepartmentMap::getDepartment)
+                            .collect(Collectors.toList());
+                }
+            }
+
+            // now fetch employees for those departments
+            for (Department d : finalDepartments) {
+                allowedEmployees.addAll(employeeRepo.findByDepartmentId(d.getId()));
+            }
+
+            // If survey entity contains a targetPosition field (optional),
+            // you might want to include employees by position as well.
+            // (Not added here because Survey structure unknown — can be added easily.)
+        }
+
+        // ------------------------------
+        // 4) De-duplicate & prepare sets
+        // ------------------------------
+        // dedupe by employeeId
+        Map<String, Employee> empMap = new LinkedHashMap<>();
+        for (Employee e : allowedEmployees) {
+            if (e != null && e.getEmployeeId() != null) {
+                empMap.putIfAbsent(e.getEmployeeId(), e);
+            }
+        }
+
+        List<Employee> employees = new ArrayList<>(empMap.values());
         int totalEmployees = employees.size();
 
-        Set<String> allowedEmpIds =
-                employees.stream().map(Employee::getEmployeeId).collect(Collectors.toSet());
+        Set<String> allowedEmpIds = employees.stream()
+                .map(Employee::getEmployeeId)
+                .collect(Collectors.toSet());
 
         // ------------------------------
-        // 5) Responses
+        // 5) Responses (only consider allowed employees)
         // ------------------------------
         List<SurveyResponse> responses =
-                (surveyId == null)
-                        ? responseRepo.findAll()
-                        : responseRepo.findBySurveyId(surveyId);
+                (surveyId == null) ? responseRepo.findAll() : responseRepo.findBySurveyId(surveyId);
 
         Set<String> submitted = responses.stream()
                 .map(SurveyResponse::getEmployeeId)
@@ -111,24 +160,86 @@ public class DashboardServiceImpl implements DashboardService {
                 .collect(Collectors.toSet());
 
         // ------------------------------
-        // 6) Build Lists
+        // 6) Build submitted and pending lists (only allowed employees)
         // ------------------------------
         List<String> submittedList = employees.stream()
                 .filter(e -> submitted.contains(e.getEmployeeId()))
                 .map(e -> e.getName() + " - " + e.getEmployeeId())
-                .toList();
+                .collect(Collectors.toList());
 
         List<String> pendingList = employees.stream()
                 .filter(e -> !submitted.contains(e.getEmployeeId()))
                 .map(e -> e.getName() + " - " + e.getEmployeeId())
-                .toList();
+                .collect(Collectors.toList());
 
         // ------------------------------
-        // 7) Department Stats
+        // 7) Department Stats — ensure stats reflect allowed employees
         // ------------------------------
-        List<DepartmentStatsDTO> deptStats = finalDepartments.stream()
-                .map(d -> createDeptStats(surveyId, d))
-                .toList();
+        List<DepartmentStatsDTO> deptStats = new ArrayList<>();
+        // If explicit assignments exist, compute per-department stats from assignments subset
+        if (explicitAssignments != null && !explicitAssignments.isEmpty()) {
+            // group assignments by dept
+            Map<Long, List<SurveyAssignment>> grouped = explicitAssignments.stream()
+                    .filter(sa -> sa.getDepartment() != null)
+                    .collect(Collectors.groupingBy(sa -> sa.getDepartment().getId()));
+
+            for (Map.Entry<Long, List<SurveyAssignment>> entry : grouped.entrySet()) {
+                Department dept = deptRepo.findById(entry.getKey()).orElse(null);
+                List<SurveyAssignment> assignList = entry.getValue();
+
+                int total = assignList.size();
+                long submittedCount = assignList.stream()
+                        .map(SurveyAssignment::getEmployeeId)
+                        .filter(submitted::contains)
+                        .count();
+
+                DepartmentStatsDTO ds = new DepartmentStatsDTO();
+                ds.setDepartmentId(dept != null ? dept.getId() : null);
+                ds.setDepartmentName(dept != null ? dept.getName() : ("Dept-" + entry.getKey()));
+                ds.setTotalEmployees(total);
+                ds.setSubmitted((int) submittedCount);
+                ds.setPending(total - (int) submittedCount);
+                ds.setResponseRate(total == 0 ? 0 : (100.0 * submittedCount / total));
+                deptStats.add(ds);
+            }
+
+            // also include any assignments without department (optional)
+            long unassignedCount = explicitAssignments.stream().filter(sa -> sa.getDepartment() == null).count();
+            if (unassignedCount > 0) {
+                DepartmentStatsDTO ds = new DepartmentStatsDTO();
+                ds.setDepartmentId(null);
+                ds.setDepartmentName("Unassigned/Individual");
+                long submittedCount = explicitAssignments.stream()
+                        .filter(sa -> sa.getDepartment() == null)
+                        .map(SurveyAssignment::getEmployeeId)
+                        .filter(submitted::contains).count();
+                ds.setTotalEmployees((int) unassignedCount);
+                ds.setSubmitted((int) submittedCount);
+                ds.setPending((int) (unassignedCount - submittedCount));
+                ds.setResponseRate(unassignedCount == 0 ? 0 : (100.0 * submittedCount / unassignedCount));
+                deptStats.add(ds);
+            }
+
+        } else {
+            // No explicit assignments — use finalDepartments / department mapping (existing behaviour)
+            // Reconstruct finalDepartments used earlier:
+            List<SurveyDepartmentMap> mappings = (surveyId == null) ? new ArrayList<>() : surveyDepartmentMapRepo.findBySurveyId(surveyId);
+            long deptCount = deptRepo.count();
+            boolean isAllDeptSurvey = (mappings.isEmpty() || mappings.size() == deptCount);
+            List<Department> finalDepartments;
+            if (mappings.isEmpty() && isAllDeptSurvey) {
+                finalDepartments = deptRepo.findAll();
+            } else if (mappings.isEmpty()) {
+                finalDepartments = deptRepo.findAll();
+            } else {
+                finalDepartments = mappings.stream().map(SurveyDepartmentMap::getDepartment).collect(Collectors.toList());
+            }
+
+            for (Department d : finalDepartments) {
+                DepartmentStatsDTO ds = createDeptStatsFilteredByAllowedEmployees(surveyId, d, allowedEmpIds);
+                deptStats.add(ds);
+            }
+        }
 
         // ------------------------------
         // 8) Fill DTO
@@ -139,7 +250,7 @@ public class DashboardServiceImpl implements DashboardService {
         dto.setTotalPending(pendingList.size());
         dto.setTotalSurveys(surveyRepo.count());
         dto.setDepartmentStats(deptStats);
-        dto.setSurveyStats(getSurveyStats(surveyId));
+        dto.setSurveyStats(getSurveyStatsFiltered(surveyId, allowedEmpIds));
         dto.setSubmittedEmployees(submittedList);
         dto.setPendingEmployees(pendingList);
 
@@ -156,11 +267,16 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /* ----------------------------------------------------------
-     * Department stats builder
+     * Department stats builder using only allowed employees
      * -------------------------------------------------------- */
-    private DepartmentStatsDTO createDeptStats(Long surveyId, Department dept) {
+    private DepartmentStatsDTO createDeptStatsFilteredByAllowedEmployees(Long surveyId, Department dept, Set<String> allowedEmpIds) {
 
-        List<Employee> employees = employeeRepo.findByDepartmentId(dept.getId());
+        // Employees for this department (but only those in allowedEmpIds)
+        List<Employee> employees = employeeRepo.findByDepartmentId(dept.getId())
+                .stream()
+                .filter(e -> allowedEmpIds.contains(e.getEmployeeId()))
+                .collect(Collectors.toList());
+
         int total = employees.size();
 
         List<String> submittedIds = (surveyId == null)
@@ -183,28 +299,19 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /* ----------------------------------------------------------
-     * Other methods
+     * Survey Stats (filtered) — counts only allowed employees
      * -------------------------------------------------------- */
-    @Override
-    public List<DepartmentStatsDTO> getDepartmentStats(Long surveyId, Long departmentId) {
-        return getDashboardData(surveyId, departmentId).getDepartmentStats();
-    }
-
-    @Override
-    public SurveyStatsDTO getSurveyStats(Long surveyId) {
-
+    private SurveyStatsDTO getSurveyStatsFiltered(Long surveyId, Set<String> allowedEmpIds) {
         SurveyStatsDTO dto = new SurveyStatsDTO();
 
         if (surveyId == null) {
             int total = employeeRepo.findAll().size();
             long submitted = responseRepo.count();
-
             dto.setSurveyId(0L);
             dto.setSurveyTitle("All Surveys");
             dto.setTotalEmployees(total);
             dto.setTotalSubmitted(submitted);
             dto.setTotalPending(total - submitted);
-
             return dto;
         }
 
@@ -212,25 +319,33 @@ public class DashboardServiceImpl implements DashboardService {
         dto.setSurveyId(surveyId);
         dto.setSurveyTitle(survey != null ? survey.getTitle() : "Survey");
 
-        List<SurveyDepartmentMap> maps = surveyDepartmentMapRepo.findBySurveyId(surveyId);
-        long deptCount = deptRepo.count();
+        // total is number of allowed employees (if filtered set provided) otherwise compute
+        int total = (allowedEmpIds != null && !allowedEmpIds.isEmpty())
+                ? allowedEmpIds.size()
+                : deptRepo.findAll().stream()
+                    .mapToInt(d -> employeeRepo.findByDepartmentId(d.getId()).size()).sum();
 
-        List<Department> depts =
-                (maps.isEmpty() || maps.size() == deptCount)
-                        ? deptRepo.findAll()
-                        : maps.stream().map(SurveyDepartmentMap::getDepartment).toList();
-
-        int total = depts.stream()
-                .mapToInt(d -> employeeRepo.findByDepartmentId(d.getId()).size())
-                .sum();
-
-        long submitted = responseRepo.countBySurveyId(surveyId);
+        long submitted = responseRepo.findBySurveyId(surveyId).stream()
+                .map(SurveyResponse::getEmployeeId)
+                .filter(id -> allowedEmpIds == null || allowedEmpIds.isEmpty() || allowedEmpIds.contains(id))
+                .count();
 
         dto.setTotalEmployees(total);
         dto.setTotalSubmitted(submitted);
-        dto.setTotalPending(total - submitted);
+        dto.setTotalPending(total - (int) submitted);
 
         return dto;
+    }
+
+    @Override
+    public List<DepartmentStatsDTO> getDepartmentStats(Long surveyId, Long departmentId) {
+        return getDashboardData(surveyId, departmentId).getDepartmentStats();
+    }
+
+    @Override
+    public SurveyStatsDTO getSurveyStats(Long surveyId) {
+        // keep original signature but delegate to filtered variant
+        return getSurveyStatsFiltered(surveyId, Collections.emptySet());
     }
 
     @Override

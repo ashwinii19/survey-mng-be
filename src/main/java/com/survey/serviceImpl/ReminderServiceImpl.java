@@ -150,25 +150,129 @@ public class ReminderServiceImpl implements ReminderService {
         }
     }
 
+//    private ReminderSendResultDTO processReminder(Reminder reminder, boolean sendToAll) {
+//
+//        Survey survey = reminder.getSurvey();
+//        Department department = reminder.getDepartment();
+//
+//        List<Employee> employees = (department != null)
+//                ? employeeRepository.findByDepartmentId(department.getId())
+//                : employeeRepository.findAll();
+//
+//        Set<String> submittedEmployeeIds = responseRepository.findBySurveyId(survey.getId())
+//                .stream()
+//                .map(r -> r.getEmployeeId())
+//                .filter(Objects::nonNull)
+//                .collect(Collectors.toSet());
+//
+//        List<Employee> recipients = employees.stream()
+//                .filter(emp -> !submittedEmployeeIds.contains(emp.getEmployeeId()))
+//                .collect(Collectors.toList());
+//
+//        List<String> sentTo = new ArrayList<>();
+//        List<String> failed = new ArrayList<>();
+//
+//        for (Employee emp : recipients) {
+//            try {
+//                Context context = new Context();
+//                context.setVariable("employeeName", emp.getName());
+//                context.setVariable("surveyTitle", survey.getTitle());
+//                String link = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getEmployeeId();
+//                context.setVariable("formLink", link);
+//                context.setVariable("message", reminder.getMessage());
+//                context.setVariable("dueDate", reminder.getScheduledAt() != null
+//                        ? reminder.getScheduledAt().toLocalDate().toString()
+//                        : "");
+//
+//                emailService.sendEmailWithTemplate(
+//                        emp.getEmail(),
+//                        "Survey Reminder: " + survey.getTitle(),
+//                        "survey-mail-template",
+//                        context
+//                );
+//
+//                sentTo.add(emp.getEmail());
+//
+//                SurveyAssignment assignment =
+//                        assignmentRepository.findBySurveyIdAndEmployeeId(
+//                                survey.getId(), emp.getEmployeeId()).orElse(null);
+//
+//                if (assignment != null) {
+//                    assignment.setReminderSent(true);
+//                    assignmentRepository.save(assignment);
+//                }
+//
+//            } catch (Exception e) {
+//                failed.add(emp.getEmail());
+//            }
+//        }
+//
+//        ReminderSendResultDTO result = new ReminderSendResultDTO();
+//        result.setReminderId(reminder.getId());
+//        result.setSurveyTitle(survey.getTitle());
+//        result.setDepartmentName(department != null ? department.getName() : "All Departments");
+//        result.setTotalEmployees(employees.size());
+//
+//        result.setPendingCount(recipients.size());
+//
+//        result.setSentTo(sentTo);
+//        result.setFailed(failed);
+//        result.setTimestamp(LocalDateTime.now());
+//        return result;
+//    }
+    
     private ReminderSendResultDTO processReminder(Reminder reminder, boolean sendToAll) {
 
         Survey survey = reminder.getSurvey();
-        Department department = reminder.getDepartment();
+        Department departmentFilter = reminder.getDepartment();
 
-        List<Employee> employees = (department != null)
-                ? employeeRepository.findByDepartmentId(department.getId())
-                : employeeRepository.findAll();
+        /* ----------------------------------------------------------
+           1) FETCH ALL ASSIGNMENTS FOR THIS SURVEY
+        ---------------------------------------------------------- */
+        List<SurveyAssignment> assignments =
+                assignmentRepository.findBySurveyId(survey.getId());
 
-        Set<String> submittedEmployeeIds = responseRepository.findBySurveyId(survey.getId())
+        // Filter by department IF reminder created for department
+        if (departmentFilter != null) {
+            assignments = assignments.stream()
+                    .filter(a -> a.getDepartment() != null &&
+                            Objects.equals(a.getDepartment().getId(), departmentFilter.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        // Extract unique assigned employee IDs
+        Set<String> assignedEmpIds = assignments.stream()
+                .map(SurveyAssignment::getEmployeeId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        /* ----------------------------------------------------------
+           2) FETCH EMPLOYEES USING assignedEmpIds ONLY
+        ---------------------------------------------------------- */
+        List<Employee> assignedEmployees = assignedEmpIds.stream()
+                .map(id -> employeeRepository.findByEmployeeId(id).orElse(null))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        /* ----------------------------------------------------------
+           3) FETCH EMPLOYEES WHO HAVE ALREADY SUBMITTED
+        ---------------------------------------------------------- */
+        Set<String> submittedIds = responseRepository.findBySurveyId(survey.getId())
                 .stream()
                 .map(r -> r.getEmployeeId())
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        List<Employee> recipients = employees.stream()
-                .filter(emp -> !submittedEmployeeIds.contains(emp.getEmployeeId()))
+        /* ----------------------------------------------------------
+           4) FINAL RECIPIENT LIST = ASSIGNED - SUBMITTED
+        ---------------------------------------------------------- */
+        List<Employee> recipients = assignedEmployees.stream()
+                .filter(emp -> !submittedIds.contains(emp.getEmployeeId())) // only pending
                 .collect(Collectors.toList());
 
+        /* ----------------------------------------------------------
+           5) SEND EMAIL REMINDER ONLY TO RECIPIENTS
+        ---------------------------------------------------------- */
         List<String> sentTo = new ArrayList<>();
         List<String> failed = new ArrayList<>();
 
@@ -177,7 +281,8 @@ public class ReminderServiceImpl implements ReminderService {
                 Context context = new Context();
                 context.setVariable("employeeName", emp.getName());
                 context.setVariable("surveyTitle", survey.getTitle());
-                String link = baseUrl + "/survey/" + survey.getId() + "/form?employeeId=" + emp.getEmployeeId();
+                String link = baseUrl + "/survey/" + survey.getId()
+                        + "/form?employeeId=" + emp.getEmployeeId();
                 context.setVariable("formLink", link);
                 context.setVariable("message", reminder.getMessage());
                 context.setVariable("dueDate", reminder.getScheduledAt() != null
@@ -193,33 +298,36 @@ public class ReminderServiceImpl implements ReminderService {
 
                 sentTo.add(emp.getEmail());
 
-                SurveyAssignment assignment =
-                        assignmentRepository.findBySurveyIdAndEmployeeId(
-                                survey.getId(), emp.getEmployeeId()).orElse(null);
+                // mark reminderSent = true on assignment
+                assignmentRepository.findBySurveyIdAndEmployeeId(survey.getId(), emp.getEmployeeId())
+                        .ifPresent(a -> {
+                            a.setReminderSent(true);
+                            assignmentRepository.save(a);
+                        });
 
-                if (assignment != null) {
-                    assignment.setReminderSent(true);
-                    assignmentRepository.save(assignment);
-                }
-
-            } catch (Exception e) {
+            } catch (MailException e) {
                 failed.add(emp.getEmail());
             }
         }
 
+        /* ----------------------------------------------------------
+           6) BUILD RESPONSE DTO
+        ---------------------------------------------------------- */
         ReminderSendResultDTO result = new ReminderSendResultDTO();
         result.setReminderId(reminder.getId());
         result.setSurveyTitle(survey.getTitle());
-        result.setDepartmentName(department != null ? department.getName() : "All Departments");
-        result.setTotalEmployees(employees.size());
-
+        result.setDepartmentName(
+                departmentFilter != null ? departmentFilter.getName() : "All Departments"
+        );
+        result.setTotalEmployees(assignedEmployees.size());
         result.setPendingCount(recipients.size());
-
         result.setSentTo(sentTo);
         result.setFailed(failed);
         result.setTimestamp(LocalDateTime.now());
+
         return result;
     }
+
 
 
     @Override
