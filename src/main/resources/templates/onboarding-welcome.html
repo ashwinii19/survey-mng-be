@@ -69,6 +69,7 @@
         .resources-table td {
             padding: 12px 15px;
             border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
         }
         .resources-table a {
             color: #009B8C;
@@ -93,6 +94,7 @@
         }
         .signature {
             margin-top: 30px;
+            text-align: left;
         }
         .footer {
             background: #f8f9fa;
@@ -100,6 +102,22 @@
             text-align: center;
             color: #6c757d;
             border-top: 1px solid #e9ecef;
+        }
+        .section-title {
+            width: 35%;
+            font-weight: 500;
+        }
+        .section-content {
+            width: 65%;
+        }
+        .credentials-details {
+            margin-top: 5px;
+        }
+        .paragraph-style {
+            text-align: left;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -110,22 +128,25 @@
                 <img th:src="${welcomeImage}" alt="Welcome to Aurionpro">
             </div>
         </div>
-
+ 
         <div class="content">
             <div class="greeting">
-                <h2>Hello <span th:text="${employeeName}">Employee</span>!</h2>
-                <p>
-                    We are delighted to welcome you to Aurionpro.<br>
-                    At Aurionpro, we go beyond building technology – we enable businesses, cities, and institutions 
-                    to transform and thrive. Whether it's advancing digital innovation, strengthening cybersecurity, 
-                    or reimagining smart mobility and infrastructure, your role here will contribute to creating 
-                    solutions that drive sustainable growth.<br>
-                    Please go through the following items and complete the required essentials.
+                <h2>Hello <span th:text="${employeeName}">jagriti pandey</span>!</h2>
+                <p class="paragraph-style">
+                    We are delighted to welcome you to <strong>Aurionpro</strong>.
+                </p>
+                <br>
+                <p class="paragraph-style">
+                    At Aurionpro, we go beyond building technology – we enable businesses, cities, and institutions to transform and thrive. Whether it's advancing digital innovation, strengthening cybersecurity, or reimagining smart mobility and infrastructure, your role here will contribute to creating solutions that drive sustainable growth.
+                </p>
+                <br>
+                <p class="paragraph-style">
+                    To help you settle in seamlessly,Please go through the following items and complete the required essentials.
                 </p>
             </div>
-
+ 
             <div class="divider"></div>
-
+ 
             <table class="resources-table">
                 <thead>
                     <tr>
@@ -135,58 +156,67 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>To create permanent ID card</td>
-                        <td><a href="https://forms.office.com/r/nDg7dEqqmX">Click here</a></td>
+                        <td class="section-title">To create permanent ID card</td>
+                        <td class="section-content">
+                            <a href="https://forms.office.com/r/nDg7dEqqmX">Click here</a>
+                        </td>
                     </tr>
                     <tr>
-                        <td>Navigator Guide</td>
-                        <td>
-                            <a href="https://aurionprosoln-my.sharepoint.com/:b:/r/personal/hr_aurionpro_com/Documents/Navigator.pdf?csf=1&web=1&e=RPHy2P">
+                        <td class="section-title">Navigator Guide</td>
+                        <td class="section-content">
+                            <a href="Navigator.pdf">
                                 Download Navigator Guide
                             </a>
                         </td>
                     </tr>
                     <tr>
-                        <td>HR Handbook</td>
-                        <td>
-                            <a href="https://aurionprosoln-my.sharepoint.com/:b:/r/personal/hr_aurionpro_com/Documents/Policies.pdf?csf=1&web=1&e=2XP1N3">
+                        <td class="section-title">HR Handbook</td>
+                        <td class="section-content">
+                            <a href="Policies.pdf">
                                 Download HR Handbook
                             </a>
                         </td>
                     </tr>
                     <tr>
-                        <td>Zing HRMS Credentials</td>
-                        <td>
-                            <strong>URL:</strong> 
-                            <a href="https://portal.zinghr.com/SAML/Auth/Signin/aurionpro">Login Here</a><br>
-                            <strong>User Name:</strong> <span th:text="${employeeEmail}">email@example.com</span><br>
-                            <strong>Password:</strong> Will be sent separately
+                        <td class="section-title">Zing HRMS Credentials</td>
+                        <td class="section-content">
+                            <div class="credentials-details">
+                                <strong>URL:</strong>
+                                <a href="https://portal.zinghr.com/SAML/Auth/Signin/aurionpro">Login Here</a><br>
+                                <strong>User Name:</strong> <span th:text="${employeeEmail}">email@example.com</span><br>
+                                <strong>Password:</strong> Will be sent separately
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="section-title">Spine HRMS</td>
+                        <td class="section-content">
+                            <div class="credentials-details">
+                                Platform for payroll, taxation, and managing flexi benefits<br>
+                                <em>You will receive login credentials after one week.</em>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
-
-            <div class="credentials-section">
-                <h3>Spine HRMS</h3>
-                <p><em>You will receive login credentials after one week.</em></p>
-            </div>
-
+ 
             <div class="credentials-section">
                 <h3>Portions Call</h3>
-                <p>Please ensure all onboarding portions are completed.</p>
+                
             </div>
-
+ 
             <div class="contact-info">
-                <p>If you have queries, please contact the HR Team.</p>
+                <p>	Please ensure all onboarding portions are completed.<br>
+					If you have queries, please feel free to reach out to the HR Team. We are here to ensure your onboarding experience is smooth, supportive, and meaningful.</p>
             </div>
-
+ 
             <div class="signature">
                 <p><strong>Best regards,</strong></p>
                 <p><strong>HR Team</strong></p>
                 <p><strong>Aurionpro Solutions Ltd.</strong></p>
             </div>
         </div>
-
+ 
         <div class="footer">
             <p>&copy; 2024 Aurionpro Solutions Ltd. All rights reserved.</p>
             <p style="font-size: 12px;">This is an automated message. Do not reply.</p>
