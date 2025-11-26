@@ -102,7 +102,3 @@ public class EmployeeItemWriter implements ItemWriter<Employee> {
         }
     }
 }
-
-
-
-
