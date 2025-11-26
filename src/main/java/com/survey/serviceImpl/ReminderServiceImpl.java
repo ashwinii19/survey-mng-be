@@ -62,10 +62,18 @@ public class ReminderServiceImpl implements ReminderService {
                 .max(Comparator.comparing(Survey::getCreatedAt))
                 .orElseThrow(() -> new RuntimeException("No valid survey found."));
 
+//        Department department = null;
+//        if (dto.getDepartmentName() != null && !dto.getDepartmentName().isEmpty()) {
+//            department = departmentRepository.findByName(dto.getDepartmentName())
+//                    .orElseThrow(() -> new RuntimeException("Department not found: " + dto.getDepartmentName()));
+//        }
+        
         Department department = null;
         if (dto.getDepartmentName() != null && !dto.getDepartmentName().isEmpty()) {
-            department = departmentRepository.findByName(dto.getDepartmentName())
-                    .orElseThrow(() -> new RuntimeException("Department not found: " + dto.getDepartmentName()));
+            department = departmentRepository.findByName(dto.getDepartmentName());
+            if (department == null) {
+                throw new RuntimeException("Department not found: " + dto.getDepartmentName());
+            }
         }
 
         Reminder reminder = Reminder.builder()

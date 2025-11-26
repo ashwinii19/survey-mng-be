@@ -196,7 +196,6 @@
 
 
 
-
 package com.survey.batch;
 
 import org.modelmapper.ModelMapper;
@@ -241,14 +240,14 @@ public class EmployeeItemProcessor implements ItemProcessor<EmployeeRequestDTO, 
                 dto.getEmployeeId(), dto.getName(), dto.getEmail());
         
         // 🟡 LOG ALL RAW DATA
-        log.info("📋 RAW DTO DATA - EmployeeId: '{}', Name: '{}', Email: '{}', Position: '{}', Status: '{}', JoinDate: '{}', DepartmentId: {}", 
+        log.info("📋 RAW DTO DATA - EmployeeId: '{}', Name: '{}', Email: '{}', Position: '{}', Status: '{}', JoinDate: '{}', DepartmentName: '{}'", 
                 dto.getEmployeeId(), 
                 dto.getName(), 
                 dto.getEmail(), 
                 dto.getPosition(), 
                 dto.getStatus(), 
                 dto.getJoinDate(), 
-                dto.getDepartmentId());
+                dto.getDepartmentName()); // 🟡 CHANGE: From DepartmentId to DepartmentName
 
         try {
             // Validate required fields
@@ -273,13 +272,22 @@ public class EmployeeItemProcessor implements ItemProcessor<EmployeeRequestDTO, 
                 return null;
             }
 
+            // 🟡 CHANGE: Validate department name instead of ID
+            if (dto.getDepartmentName() == null || dto.getDepartmentName().trim().isEmpty()) {
+                log.warn("❌ VALIDATION FAILED: MISSING_DEPARTMENT for {} - {}", dto.getEmployeeId(), dto.getEmail());
+                saveFailedRecord(dto, "MISSING_DEPARTMENT", "Department Name is required");
+                updateBatchLogCounts(0, 1);
+                return null;
+            }
+
             // Trim and clean data
             String cleanedEmployeeId = dto.getEmployeeId().trim();
             String cleanedEmail = dto.getEmail().trim().toLowerCase();
             String cleanedName = dto.getName().trim();
+            String cleanedDepartmentName = dto.getDepartmentName().trim(); // 🟡 ADD: Clean department name
 
-            log.info("🧹 CLEANED DATA - EmployeeId: '{}', Email: '{}', Name: '{}'", 
-                    cleanedEmployeeId, cleanedEmail, cleanedName);
+            log.info("🧹 CLEANED DATA - EmployeeId: '{}', Email: '{}', Name: '{}', Department: '{}'", 
+                    cleanedEmployeeId, cleanedEmail, cleanedName, cleanedDepartmentName);
 
             // Check for duplicate email
             Optional<Employee> existingByEmail = employeeRepository.findByEmail(cleanedEmail);
@@ -303,19 +311,12 @@ public class EmployeeItemProcessor implements ItemProcessor<EmployeeRequestDTO, 
                 log.info("✅ EMPLOYEE_ID CHECK: '{}' is available", cleanedEmployeeId);
             }
 
-            // Validate department exists
-            if (dto.getDepartmentId() == null) {
-                log.warn("❌ VALIDATION FAILED: MISSING_DEPARTMENT for {} - {}", cleanedEmployeeId, cleanedEmail);
-                saveFailedRecord(dto, "MISSING_DEPARTMENT", "Department ID is required");
-                updateBatchLogCounts(0, 1);
-                return null;
-            }
-
-            log.info("🔍 Checking department with ID: {}", dto.getDepartmentId());
-            Department department = departmentRepository.findById(dto.getDepartmentId()).orElse(null);
+            // 🟡 CHANGE: Find department by NAME instead of ID
+            log.info("🔍 Checking department with name: '{}'", cleanedDepartmentName);
+            Department department = departmentRepository.findByName(cleanedDepartmentName);
             if (department == null) {
-                log.warn("❌ VALIDATION FAILED: INVALID_DEPARTMENT - Department ID {} not found in database", dto.getDepartmentId());
-                saveFailedRecord(dto, "INVALID_DEPARTMENT", "Department not found with ID: " + dto.getDepartmentId());
+                log.warn("❌ VALIDATION FAILED: INVALID_DEPARTMENT - Department '{}' not found in database", cleanedDepartmentName);
+                saveFailedRecord(dto, "INVALID_DEPARTMENT", "Department not found with name: " + cleanedDepartmentName);
                 updateBatchLogCounts(0, 1);
                 return null;
             }
@@ -418,15 +419,16 @@ public class EmployeeItemProcessor implements ItemProcessor<EmployeeRequestDTO, 
 
     private String convertToJsonString(EmployeeRequestDTO dto) {
         try {
+            // 🟡 CHANGE: Include departmentName instead of departmentId
             return String.format(
-                "{\"employeeId\":\"%s\",\"name\":\"%s\",\"email\":\"%s\",\"position\":\"%s\",\"status\":\"%s\",\"joinDate\":\"%s\",\"departmentId\":%s}",
+                "{\"employeeId\":\"%s\",\"name\":\"%s\",\"email\":\"%s\",\"position\":\"%s\",\"status\":\"%s\",\"joinDate\":\"%s\",\"departmentName\":\"%s\"}",
                 dto.getEmployeeId() != null ? dto.getEmployeeId().replace("\"", "\\\"") : "",
                 dto.getName() != null ? dto.getName().replace("\"", "\\\"") : "",
                 dto.getEmail() != null ? dto.getEmail().replace("\"", "\\\"") : "",
                 dto.getPosition() != null ? dto.getPosition().replace("\"", "\\\"") : "",
                 dto.getStatus() != null ? dto.getStatus() : "ACTIVE",
                 dto.getJoinDate() != null ? dto.getJoinDate().toString() : "",
-                dto.getDepartmentId() != null ? dto.getDepartmentId() : "null"
+                dto.getDepartmentName() != null ? dto.getDepartmentName().replace("\"", "\\\"") : "" // 🟡 CHANGE
             );
         } catch (Exception e) {
             log.error("❌ Error converting employee data to JSON: {}", dto.getEmail(), e);
