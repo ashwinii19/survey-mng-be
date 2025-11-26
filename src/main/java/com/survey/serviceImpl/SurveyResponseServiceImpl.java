@@ -198,49 +198,93 @@ public class SurveyResponseServiceImpl implements SurveyResponseService {
     }
 
     // ========================= helper used by admin summary page =========================
+//    private SurveySubmissionResponseDTO buildSurveySummary(Survey survey) {
+//
+//        List<SurveyDepartmentMap> mappings = surveyDepartmentMapRepository.findBySurveyId(survey.getId());
+//        long totalDeptCount = departmentRepository.count();
+//
+//        List<Department> depts;
+//
+//        if (mappings.isEmpty() || mappings.size() == totalDeptCount) {
+//            depts = departmentRepository.findAll();
+//        } else {
+//            depts = mappings.stream()
+//                    .map(SurveyDepartmentMap::getDepartment)
+//                    .collect(Collectors.toList());
+//        }
+//
+//        List<Employee> employees = new ArrayList<>();
+//        for (Department d : depts) {
+//            employees.addAll(employeeRepository.findByDepartmentId(d.getId()));
+//        }
+//
+//        List<SurveyResponse> responses = surveyResponseRepository.findBySurveyId(survey.getId());
+//
+//        List<String> submitted = responses.stream()
+//                .map(r -> employeeRepository.findByEmployeeId(r.getEmployeeId())
+//                        .map(Employee::getName).orElse(null))
+//                .filter(Objects::nonNull)
+//                .collect(Collectors.toList());
+//
+//        List<String> pending = employees.stream()
+//                .map(Employee::getName)
+//                .filter(name -> !submitted.contains(name))
+//                .collect(Collectors.toList());
+//
+//        SurveySubmissionResponseDTO dto = new SurveySubmissionResponseDTO();
+//
+//        dto.setSurveyId(survey.getId());
+//        dto.setSurveyTitle(survey.getTitle());
+//
+//        dto.setDepartmentName(
+//                mappings.size() == totalDeptCount
+//                        ? "ALL"
+//                        : depts.stream().map(Department::getName).collect(Collectors.joining(", "))
+//        );
+//
+//        dto.setTotalEmployees(employees.size());
+//        dto.setSubmittedCount(submitted.size());
+//        dto.setPendingCount(pending.size());
+//        dto.setSubmittedEmployees(submitted);
+//        dto.setPendingEmployees(pending);
+//
+//        return dto;
+//    }
+    
     private SurveySubmissionResponseDTO buildSurveySummary(Survey survey) {
 
-        List<SurveyDepartmentMap> mappings = surveyDepartmentMapRepository.findBySurveyId(survey.getId());
-        long totalDeptCount = departmentRepository.count();
-
-        List<Department> depts;
-
-        if (mappings.isEmpty() || mappings.size() == totalDeptCount) {
-            depts = departmentRepository.findAll();
-        } else {
-            depts = mappings.stream()
-                    .map(SurveyDepartmentMap::getDepartment)
-                    .collect(Collectors.toList());
-        }
-
-        List<Employee> employees = new ArrayList<>();
-        for (Department d : depts) {
-            employees.addAll(employeeRepository.findByDepartmentId(d.getId()));
-        }
-
-        List<SurveyResponse> responses = surveyResponseRepository.findBySurveyId(survey.getId());
-
-        List<String> submitted = responses.stream()
-                .map(r -> employeeRepository.findByEmployeeId(r.getEmployeeId())
-                        .map(Employee::getName).orElse(null))
-                .filter(Objects::nonNull)
+        // ✅ Fetch assigned employees from SurveyAssignment table
+        List<String> assignedEmpIds = assignmentRepository.findBySurveyId(survey.getId())
+                .stream()
+                .map(a -> a.getEmployeeId())
                 .collect(Collectors.toList());
 
-        List<String> pending = employees.stream()
+        List<Employee> employees = assignedEmpIds.isEmpty()
+                ? List.of()
+                : employeeRepository.findByEmployeeIdIn(assignedEmpIds);
+
+        // ✅ Submitted responses
+        List<SurveyResponse> responses = surveyResponseRepository.findBySurveyId(survey.getId());
+
+        Set<String> submittedIds = responses.stream()
+                .map(SurveyResponse::getEmployeeId)
+                .collect(Collectors.toSet());
+
+        List<String> submitted = employees.stream()
+                .filter(e -> submittedIds.contains(e.getEmployeeId()))
                 .map(Employee::getName)
-                .filter(name -> !submitted.contains(name))
+                .collect(Collectors.toList());
+
+        // ✅ Pending = assigned but not submitted
+        List<String> pending = employees.stream()
+                .filter(e -> !submittedIds.contains(e.getEmployeeId()))
+                .map(Employee::getName)
                 .collect(Collectors.toList());
 
         SurveySubmissionResponseDTO dto = new SurveySubmissionResponseDTO();
-
         dto.setSurveyId(survey.getId());
         dto.setSurveyTitle(survey.getTitle());
-
-        dto.setDepartmentName(
-                mappings.size() == totalDeptCount
-                        ? "ALL"
-                        : depts.stream().map(Department::getName).collect(Collectors.joining(", "))
-        );
+        dto.setDepartmentName("Assigned Departments");
 
         dto.setTotalEmployees(employees.size());
         dto.setSubmittedCount(submitted.size());
@@ -250,6 +294,7 @@ public class SurveyResponseServiceImpl implements SurveyResponseService {
 
         return dto;
     }
+
 
     // ========================= NEW: question-wise statistics for a survey =========================
 //    @Override
