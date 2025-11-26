@@ -1,226 +1,118 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Welcome to Aurionpro</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 0;
-        }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: #ffffff;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 2px solid #009B8C;
-        }
-        .welcome-image {
-            width: 100%;
-            text-align: center;
-            padding: 20px 0;
-            box-sizing: border-box;
-        }
-        .welcome-image img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
-        .content {
-            padding: 40px 30px;
-        }
-        .greeting {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .greeting h2 {
-            color: #009B8C;
-            margin-bottom: 15px;
-            font-size: 24px;
-        }
-        .divider {
-            height: 2px;
-            background: #e9ecef;
-            margin: 30px 0;
-        }
-        .resources-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        .resources-table th {
-            background-color: #f8f9fa;
-            text-align: left;
-            padding: 12px 15px;
-            border-bottom: 2px solid #e9ecef;
-            font-weight: bold;
-            color: #495057;
-        }
-        .resources-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e9ecef;
-            vertical-align: top;
-        }
-        .resources-table a {
-            color: #009B8C;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .resources-table a:hover {
-            text-decoration: underline;
-        }
-        .credentials-section {
-            margin: 25px 0;
-        }
-        .credentials-section h3 {
-            color: #009B8C;
-            margin-bottom: 10px;
-        }
-        .contact-info {
-            margin: 25px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-        .signature {
-            margin-top: 30px;
-            text-align: left;
-        }
-        .footer {
-            background: #f8f9fa;
-            padding: 30px;
-            text-align: center;
-            color: #6c757d;
-            border-top: 1px solid #e9ecef;
-        }
-        .section-title {
-            width: 35%;
-            font-weight: 500;
-        }
-        .section-content {
-            width: 65%;
-        }
-        .credentials-details {
-            margin-top: 5px;
-        }
-        .paragraph-style {
-            text-align: left;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Welcome Email - Aurionpro</title>
 </head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <div class="welcome-image">
-                <img th:src="${welcomeImage}" alt="Welcome to Aurionpro">
-            </div>
-        </div>
- 
-        <div class="content">
-            <div class="greeting">
-                <h2>Hello <span th:text="${employeeName}">jagriti pandey</span>!</h2>
-                <p class="paragraph-style">
-                    We are delighted to welcome you to <strong>Aurionpro</strong>.
-                </p>
-                <br>
-                <p class="paragraph-style">
-                    At Aurionpro, we go beyond building technology – we enable businesses, cities, and institutions to transform and thrive. Whether it's advancing digital innovation, strengthening cybersecurity, or reimagining smart mobility and infrastructure, your role here will contribute to creating solutions that drive sustainable growth.
-                </p>
-                <br>
-                <p class="paragraph-style">
-                    To help you settle in seamlessly,Please go through the following items and complete the required essentials.
-                </p>
-            </div>
- 
-            <div class="divider"></div>
- 
-            <table class="resources-table">
-                <thead>
-                    <tr>
-                        <th>Section</th>
-                        <th>Information</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="section-title">To create permanent ID card</td>
-                        <td class="section-content">
-                            <a href="https://forms.office.com/r/nDg7dEqqmX">Click here</a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="section-title">Navigator Guide</td>
-                        <td class="section-content">
-                            <a href="Navigator.pdf">
-                                Download Navigator Guide
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="section-title">HR Handbook</td>
-                        <td class="section-content">
-                            <a href="Policies.pdf">
-                                Download HR Handbook
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="section-title">Zing HRMS Credentials</td>
-                        <td class="section-content">
-                            <div class="credentials-details">
-                                <strong>URL:</strong>
-                                <a href="https://portal.zinghr.com/SAML/Auth/Signin/aurionpro">Login Here</a><br>
-                                <strong>User Name:</strong> <span th:text="${employeeEmail}">email@example.com</span><br>
-                                <strong>Password:</strong> Will be sent separately
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="section-title">Spine HRMS</td>
-                        <td class="section-content">
-                            <div class="credentials-details">
-                                Platform for payroll, taxation, and managing flexi benefits<br>
-                                <em>You will receive login credentials after one week.</em>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
- 
-            <div class="credentials-section">
-                <h3>Portions Call</h3>
-                
-            </div>
- 
-            <div class="contact-info">
-                <p>	Please ensure all onboarding portions are completed.<br>
-					If you have queries, please feel free to reach out to the HR Team. We are here to ensure your onboarding experience is smooth, supportive, and meaningful.</p>
-            </div>
- 
-            <div class="signature">
-                <p><strong>Best regards,</strong></p>
-                <p><strong>HR Team</strong></p>
-                <p><strong>Aurionpro Solutions Ltd.</strong></p>
-            </div>
-        </div>
- 
-        <div class="footer">
-            <p>&copy; 2024 Aurionpro Solutions Ltd. All rights reserved.</p>
-            <p style="font-size: 12px;">This is an automated message. Do not reply.</p>
-        </div>
-    </div>
+<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f5f5f5">
+    <tr>
+      <td align="center" style="padding:30px 0;">
+
+        <!-- Main White Box -->
+        <table width="750" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border:1px solid #dddddd;">
+          
+          <!-- Banner -->
+          <tr>
+            <td align="center" style="padding:0; border-bottom:1px solid #e0e0e0;">
+              <img th:src="${welcomeImage}" alt="Welcome to Aurionpro" width="100%" style="display:block;">
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:25px 35px; color:#000000; font-size:14px; line-height:22px; text-align:left;">
+
+              <p>Hello <strong th:text="${employeeName}">Employee Name</strong>,</p>
+
+              <p>
+                We are delighted to welcome you to Aurionpro.
+              </p>
+
+              <p>
+                At Aurionpro, we go beyond building technology – we enable businesses, cities, and institutions to transform and thrive. Whether it’s advancing digital innovation, strengthening cybersecurity, or reimagining smart mobility and infrastructure, your role here will contribute to creating solutions that drive scale, safeguard trust, and power sustainable growth.
+              </p>
+
+              <p>
+                To help you settle in seamlessly, please go through the following items and complete the required essentials.
+              </p>
+
+              <!-- Table -->
+              <table width="100%" border="1" cellspacing="0" cellpadding="10" style="border-collapse:collapse; margin-top:25px; border-color:#c1c1c1; font-size:14px;">
+                <tr bgcolor="#00796b" style="color:#ffffff; font-weight:bold;">
+                  <th width="40%" style="padding:10px; text-align:left;">Section</th>
+                  <th width="60%" style="padding:10px; text-align:left;">Information</th>
+                </tr>
+
+                <tr>
+                  <td>To create permanent id card</td>
+                  <td>
+                    <a href="https://forms.office.com/r/nDg7dEqqmX" style="color:#00796b; text-decoration:none;">
+                      https://forms.office.com/r/nDg7dEqqmX
+                    </a>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>Navigator Guide</td>
+                  <td>
+                    <a href="Navigator.pdf" style="color:#00796b; text-decoration:none;">
+                      Navigator.pdf
+                    </a>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>Zing HRMS – Portal for Leave & attendance, learning management, Rewards & Recognition and PMS</td>
+                  <td>
+                    <strong>Zing HR credentials:</strong><br>
+                    <a href="https://portal.zinghr.com/SAML/Auth/Signin/aurionpro" style="color:#00796b; text-decoration:none;">
+                      https://portal.zinghr.com/SAML/Auth/Signin/aurionpro
+                    </a><br>
+                    User Name : <span th:text="${employeeEmail}">&lt;&gt;</span><br>
+                    Password : &lt;&gt;
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>Spine HRMS – Platform for payroll, taxation, and managing flexi benefits</td>
+                  <td>
+                    You will receive login credentials after one week
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>HR Handbook</td>
+                  <td>
+                    <a href="Policies.pdf" style="color:#00796b; text-decoration:none;">
+                      Policies.pdf
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin-top:25px;">
+                If you have queries, please feel free to reach out to the HR Team. <br>We are here to ensure your onboarding experience is smooth, supportive, and meaningful.
+              </p>
+
+              <p style="font-weight:bold; margin-top:20px;">Best regards, <br>HR Team<br>Aurionpro Solutions Ltd.</p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:15px; background:#f2f2f2; font-size:12px; color:#777777; border-top:1px solid #e0e0e0;">
+              © 2024 Aurionpro Solutions Ltd. All rights reserved.<br>
+              This is an automated message. Do not reply.
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
 </body>
 </html>
