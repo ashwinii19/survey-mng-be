@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
+@Table(name = "employee_batch_log")
 public class EmployeeBatchLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,5 +19,13 @@ public class EmployeeBatchLog {
     private int failedCount;
     private String status;
 
+    @Column(name = "file_name")
+    private String fileName;
+
+    @Column(name = "batch_employee_emails", columnDefinition = "TEXT")
+    private String batchEmployeeEmails;
+
     private LocalDateTime createdAt = LocalDateTime.now();
+    
+    private LocalDateTime completedAt;
 }
