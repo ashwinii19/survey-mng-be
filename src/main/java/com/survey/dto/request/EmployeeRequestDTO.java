@@ -12,5 +12,5 @@ public class EmployeeRequestDTO {
     private String position;
     private String status;
     private String joinDate;
-    private Long departmentId; 
+    private String departmentName;
 }
