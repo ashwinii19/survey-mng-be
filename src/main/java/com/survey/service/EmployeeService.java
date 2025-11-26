@@ -23,6 +23,16 @@ public interface EmployeeService {
 	EmployeeResponseDTO updateEmployee(String employeeId, EmployeeRequestDTO dto);
 
 	void deleteEmployee(String employeeId);
+	
+	
+	
+	// 🟡 ADD THESE METHODS FOR BATCH PROCESSING AND COMPLETENESS
+    EmployeeResponseDTO getEmployeeByEmail(String email);
+    List<EmployeeResponseDTO> getEmployeesByStatus(String status);
+    List<EmployeeResponseDTO> getEmployeesByEmails(List<String> emails);
+    long getActiveEmployeeCount();
+    List<EmployeeResponseDTO> searchEmployees(String searchTerm);
+    void bulkUpdateStatus(List<String> employeeIds, String status);
 
     
 }
