@@ -1,6 +1,10 @@
 # Survey Management System - Spring Boot (Backend)
 This project is a **Survey Management Application** built using **Spring Boot** with a focus on employee management, survey tracking, onboarding email notifications, reminders, and admin dashboard analytics. It implements **JWT-based authentication** and provides secure access control for **ADMIN** users only.
 
+## Frontend Repository:
+The frontend of this project is built using Angular.
+Frontend GitHub Repo: https://github.com/ashwinii19/survey-mng-fe
+
 ## Features
 ✅ **Admin Login**: Secure login using JWT authentication  
 ✅ **Dashboard Analytics**: Filter surveys by Survey and Department to view participation  
