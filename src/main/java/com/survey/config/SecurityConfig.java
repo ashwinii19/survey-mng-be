@@ -52,7 +52,8 @@ public class SecurityConfig {
                         "/swagger-ui.html",
                         "/", "/index.html",
                         "/css/**", "/js/**", "/images/**",
-                        "/survey_success.html"
+                        "/survey_success.html",
+                        "/api/zing/**"
                 ).permitAll()
                 
                
