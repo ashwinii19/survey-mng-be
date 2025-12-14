@@ -10,5 +10,6 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZingEmployeeResponse {
     private int code;
+    private String message;
     private ZingEmployeeWrapper data;
 }

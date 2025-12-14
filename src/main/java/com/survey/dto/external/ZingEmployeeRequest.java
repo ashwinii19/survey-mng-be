@@ -6,6 +6,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ZingEmployeeRequest {
-    private int PageNumber;
+
+    private String FromDate;
+    private String ToDate;
+    private String DateFilterOn;  // MUST be "DOJ" or "DOL"
     private int PageSize;
+    private int PageNumber;
 }
