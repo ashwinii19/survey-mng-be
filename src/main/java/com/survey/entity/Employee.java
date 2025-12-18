@@ -42,16 +42,23 @@ public class Employee {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = true)
     private String email;
 
     //private boolean submitted;
     private String position;
     private String status;
     private String joinDate;
+    
+//    private String practice;
+//    private String company;
+//    private String location;
+//    private String businessUnit;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
-    @JsonIgnore
     private Department department;
+    
+    private String mobileNo;
+    private String salutation;
 }

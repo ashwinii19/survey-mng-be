@@ -127,20 +127,19 @@ public class EmailService {
 			helper.setSubject(subject);
 			helper.setText(htmlBody, true);
 
-			// CID only for onboarding welcome
 			if ("onboarding-welcome".equals(templateName)) {
-				System.out.println("🖼 Adding inline image (CID)...");
+				System.out.println("Adding inline image (CID)...");
 				helper.addInline("bannerImage", new ClassPathResource("static/images/Aurionpro_Welcome.png"));
-				System.out.println("🖼 Inline image added successfully.");
+				System.out.println("Inline image added successfully.");
 			}
 
-			System.out.println("📤 Sending email...");
+			System.out.println("Sending email...");
 			mailSender.send(message);
 
-			System.out.println("✅ Email SENT SUCCESSFULLY → " + to);
+			System.out.println("Email SENT SUCCESSFULLY → " + to);
 
 		} catch (MessagingException e) {
-			System.err.println("❌ EMAIL FAILED for " + to + ": " + e.getMessage());
+			System.err.println("EMAIL FAILED for " + to + ": " + e.getMessage());
 			throw new RuntimeException("Failed to send email to " + to, e);
 		}
 	}
