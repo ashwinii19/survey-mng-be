@@ -37,4 +37,5 @@ public class ZingHRController {
         service.fetchEmployeesAndSend();
         return "ZingHR fetch triggered!";
     }
+    
 }
