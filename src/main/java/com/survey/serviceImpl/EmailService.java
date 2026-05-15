@@ -127,10 +127,16 @@ public class EmailService {
 			helper.setSubject(subject);
 			helper.setText(htmlBody, true);
 
-			if ("onboarding-welcome".equals(templateName)) {
-				System.out.println("Adding inline image (CID)...");
-				helper.addInline("bannerImage", new ClassPathResource("static/images/Aurionpro_Welcome.png"));
-				System.out.println("Inline image added successfully.");
+//			if ("onboarding-welcome".equals(templateName)) {
+//				System.out.println("Adding inline image (CID)...");
+//				helper.addInline("bannerImage", new ClassPathResource("static/images/Aurionpro_Welcome.png"));
+//				System.out.println("Inline image added successfully.");
+//			}
+			
+			if ("onboarding-welcome".equals(templateName) || "onboarding-welcome-intern-consultant".equals(templateName)) {
+			    System.out.println("Adding inline image (CID)...");
+			    helper.addInline("bannerImage", new ClassPathResource("static/images/Aurionpro_Welcome.png"));
+			    System.out.println("Inline image added successfully.");
 			}
 
 			System.out.println("Sending email...");

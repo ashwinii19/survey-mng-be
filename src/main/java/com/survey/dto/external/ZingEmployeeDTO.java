@@ -22,12 +22,14 @@ public class ZingEmployeeDTO {
     private String gender;
 
     private String dateOfBirth;
-    private String dateOfJoining;   // DOJ
-    private String dateOfLeaving;   // DOL
+    private String dateOfJoining;  
+    private String dateOfLeaving;   
 
     private String employeeStatus;
     private String lastModified;
     private String empFlag;
 
     private List<ZingAttributeDTO> attributes;
+    
+    private String employmentType;
 }
