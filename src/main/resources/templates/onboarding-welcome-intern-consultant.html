@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>Welcome to Aurionpro - Intern/Consultant</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f5f5f5">
+    <tr>
+      <td align="center" style="padding:30px 0;">
+
+        <table width="750" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border:1px solid #dddddd;">
+
+          <!-- Banner Image (embedded via CID) -->
+          <tr>
+            <td align="center" style="padding:0; border-bottom:1px solid #e0e0e0;">
+              <img src="cid:bannerImage" alt="Aurionpro – Lead the Next" width="100%" style="display:block;">
+            </td>
+          </tr>
+
+          <!-- Email Body -->
+          <tr>
+            <td style="padding:25px 35px; color:#000000; font-size:14px; line-height:22px; text-align:left;">
+
+              <!-- Hello Name line with employee name (dynamic) -->
+              <p><strong>Hello <span th:text="${employeeName}">Name</span>,</strong></p>
+
+              <p>Welcome to Aurionpro.</p>
+
+              <p>
+                At Aurionpro, we go beyond building technology – we enable businesses, cities, and institutions to 
+                transform and thrive. Whether it’s advancing digital innovation, strengthening cybersecurity, or 
+                reimagining smart mobility and infrastructure, your role here will contribute to creating solutions 
+                that drive scale, safeguard trust, and power sustainable growth.
+              </p>
+
+              <p>
+                To ensure a smooth start to your engagement with us, kindly go through the following details and 
+                complete the necessary requirements.
+              </p>
+
+              <!-- Table with two sections -->
+              <table width="100%" border="1" cellspacing="0" cellpadding="10" style="border-collapse:collapse; margin-top:25px; border-color:#c1c1c1; font-size:14px;">
+                <tr bgcolor="#00796b" style="color:#ffffff; font-weight:bold;">
+                  <th width="40%" style="padding:10px; text-align:left;">Section</th>
+                  <th width="60%" style="padding:10px; text-align:left;">Information</th>
+                </tr>
+                <!-- Row 1: ID Card Form -->
+                <tr>
+                  <td>Fill out ID Card form to process your permanent card</td>
+                  <td>
+                    <a href="https://forms.office.com/r/nDg7dEqqmX" style="color:#00796b; text-decoration:none;">
+                      https://forms.office.com/r/nDg7dEqqmX
+                    </a>
+                  </td>
+                </tr>
+                <!-- Row 2: Zing HRMS -->
+                <tr>
+                  <td>Zing HRMS</td>
+                  <td>
+                    <strong>Zing HR Login:</strong><br>
+                    <a href="https://portal.zinghr.com/SAML/Auth/Signin/aurionpro" style="color:#00796b; text-decoration:none;">
+                      https://portal.zinghr.com/SAML/Auth/Signin/aurionpro
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin-top:25px;">
+                If you have queries, please feel free to reach out to the HR Team at 
+                <a href="mailto:hroperations@aurionpro.com">hroperations@aurionpro.com</a>.
+              </p>
+
+              <p style="font-weight:bold; margin-top:20px;">
+                Best regards,<br>
+                HR Team<br>
+                Aurionpro Solutions Ltd.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:15px; background:#f2f2f2; font-size:12px; color:#777777; border-top:1px solid #e0e0e0;">
+              © <span th:text="${#temporals.format(#temporals.createToday(), 'yyyy')}">2026</span> Aurionpro Solutions Ltd. All rights reserved.<br>
+              This is an automated message. Do not reply.
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

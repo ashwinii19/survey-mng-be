@@ -100,4 +100,26 @@ public class ZingEmployeeMapper {
 
         return null;
     }
+    
+    public static String extractDesignation(ZingEmployeeDTO dto) {
+        if (dto.getAttributes() == null) return null;
+        return dto.getAttributes().stream()
+            .filter(attr -> "Designation".equalsIgnoreCase(attr.getAttributeTypeDescription()))
+            .map(ZingAttributeDTO::getAttributeTypeUnitDescription)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public static String determineCategory(ZingEmployeeDTO dto) {
+        String designation = extractDesignation(dto);
+        if (designation == null) return "FULL_TIME";
+        
+        if (designation.toLowerCase().contains("intern")) {
+            return "INTERN";
+        } else if (designation.toLowerCase().contains("consultant")) {
+            return "CONSULTANT";
+        } else {
+            return "FULL_TIME";
+        }
+    }
 }
